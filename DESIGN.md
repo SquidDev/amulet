@@ -49,6 +49,13 @@ type Tree<'t> =
  | Branch of 't * Tree<'t> * Tree<'t>
 ```
 
+Creating a union also creates type aliases in a sub module:
+```ocaml
+module Tree =
+  type Leaf<'t> = 't
+  type Branch<'t> = 't * Tree<'t> * Tree<'t>
+```
+
 Record types are an mapping of string keys to values.
 
 ```ocaml
@@ -236,6 +243,15 @@ let infixr (+) a b = add a b (* Right associative *)
 > There needs to be a way to specify precedence. We could use a syntax similar to Haskell's `infixr precedence`
   (such as `let infixr 10 (+)`). An alternative would be to use a [katahdin](https://github.com/chrisseaton/katahdin)
   style `precedence` operator(`precedence (+) = (-)`) to allow sorting operators instead of using explicit integers.
+
+#### `use`
+This defines a variable which will be disposed of when the scope is exited.
+
+```ocaml
+use foo = File.open "something.txt"
+printfn "%s" foo.readAll()
+(* Foo closed here *)
+```
 
 #### `module`
 This can be used to define the module a piece of code lies in. It takes the form `module <name> = `. If it is the first
