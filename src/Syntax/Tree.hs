@@ -1,8 +1,8 @@
 module Syntax.Tree where
 -- Useful: https://github.com/fsharp/fsharp/blob/master/src/fsharp/ast.fs
 
--- A non-qualified name
-newtype Ident = Ident String deriving (Show, Eq)
+-- | A non-qualified name
+type Ident = String
 
 -- | A valid name
 data Name
@@ -14,9 +14,7 @@ data Name
 
 data AccessLevel = Public | Private | Internal deriving (Show, Eq)
 
-newtype TypeVar =
-  TypeVar String
-  deriving (Show, Eq)
+type TypeVar = String
 
 -- | All basic types
 data Type
@@ -30,12 +28,14 @@ data Type
   | TVar TypeVar
   -- | A reference to a named type
   | TIdent Name
+  -- | Instantate a type with a type parameter
+  | TInst Type Type
   -- | A function type
   | TFunc Type Type
   -- | A tuple type
   | TTuple [Type]
-  -- | A type constraint
-  | TConstraint { var :: TypeVar, cons :: Type, td:: Type }
+  -- | A generic type, with a constraint.
+  | TForAll { var :: TypeVar, cons :: [Type], td:: Type }
   deriving (Show, Eq)
 
 data TypeDef
@@ -130,6 +130,6 @@ data Import
 
 data Statement
   = SModule String AccessLevel [Import] [Statement]
-  | STypeDef [(Name, TypeDef)]
+  | STypeDef [(Ident, TypeDef)]
   | SExpr Expr
   deriving (Show, Eq)
