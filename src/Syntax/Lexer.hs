@@ -21,8 +21,13 @@ languageDef = emptyDef
   , T.reservedNames   = names
   , T.caseSensitive   = True
   , T.reservedOpNames = ops }
-    where names = [] 
-          ops   = []
+    where names = [ "true", "false" 
+                  , "if", "then", "else"
+                  , "and", "let", "rec"
+                  , "mut", "in" ] 
+          ops = ["\\", "->"
+            , "()", "?>", "="
+            , "<-" ]
 
 lexer :: T.TokenParser ()
 lexer = T.makeTokenParser languageDef
@@ -92,3 +97,10 @@ commaSep = T.commaSep lexer
 
 commaSep1 :: Parser a -> Parser [a]
 commaSep1 = T.commaSep1 lexer
+
+contents :: Parser a -> Parser a
+contents p = do
+  T.whiteSpace lexer
+  r <- p
+  eof
+  return r
