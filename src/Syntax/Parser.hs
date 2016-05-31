@@ -150,7 +150,7 @@ declaration = build <$> commaSep1 dterm
         build tup = DTuple tup
 
 list :: Parser Expr
-list = EList <$> brackets $ semiSep1 expression
+list = EList <$> (brackets $ semiSep1 expression)
 
 assign :: Parser Expr
 assign = do
@@ -164,7 +164,7 @@ assign = do
 
 assignable :: Parser Assignable
 assignable = tupl <|> nam
-  where tupl = ATuple <$> parens $ commaSep1 assignable
+  where tupl = ATuple <$> (parens $ commaSep1 assignable)
         nam  = AName <$> identifier
 
 
