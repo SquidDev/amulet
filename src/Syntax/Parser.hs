@@ -63,10 +63,11 @@ unit = do reservedOp "()"
 
 
 literal :: Parser Expr
-literal = do unit
+literal = unit
          <|> Syntax.Parser.string
          <|> try double
          <|> true <|> false
+         <?> "literal"
 
 index :: Parser Expr
 index = do e <- expression
@@ -108,8 +109,9 @@ letrec = do
   return $ ELet True binds expr
 
 let' :: Parser Expr
-let' = do try letrec
-          <|> letreg
+let' = try letrec
+       <|> letreg
+       <?> "let expression"
 
 letbindimut :: Parser LetBinding
 letbindimut = do
@@ -130,11 +132,12 @@ letbindmut = do
 
 letbind = try letbindmut
           <|> letbindimut
+          <?> "let binding"
 
 declaration :: Parser Declaration
-declaration = fmap build (commaSep1 dterm)
+declaration = build <$> commaSep1 dterm
   where
-        ddiscard = (char '_' >> whiteSpace >> return DDiscard)
+        ddiscard = char '_' >> whiteSpace >> return DDiscard
         dname = fmap DName identifier
         dparens = parens dtuple
         dterm = ddiscard <|> dname <|> dparens <?> "declaration"
@@ -147,7 +150,7 @@ declaration = fmap build (commaSep1 dterm)
         build tup = DTuple tup
 
 list :: Parser Expr
-list = brackets $ semiSep1 expression >>= \x -> return $ EList x
+list = EList <$> brackets $ semiSep1 expression
 
 assign :: Parser Expr
 assign = do
@@ -161,8 +164,8 @@ assign = do
 
 assignable :: Parser Assignable
 assignable = tupl <|> nam
-  where tupl = (parens $ commaSep1 assignable) >>= \x -> return $ ATuple x
-        nam  = identifier >>= \x -> return $ AName x
+  where tupl = ATuple <$> parens $ commaSep1 assignable
+        nam  = AName <$> identifier
 
 
 term :: Parser Expr
