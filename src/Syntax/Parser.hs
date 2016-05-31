@@ -3,24 +3,14 @@ module Syntax.Parser where
 import Syntax.Tree
 import Syntax.Lexer
 
-
-import Text.Parsec.Char
-import Text.Parsec.Combinator
-
 import Text.Parsec
-import Text.Parsec.Prim
-
 import Text.Parsec.String (Parser)
-
-import Control.Applicative hiding ((<|>), many)
-
-import Debug.Trace (trace)
 
 param :: Parser Expr
 param = do
   nam <- identifier
   t1  <- optionMaybe $ colon >> atype
-  
+
   let name = EVar nam
 
   return $ case t1 of
@@ -64,6 +54,7 @@ string = let escape = do c <- char '\\'
           in do char '"'
                 strs <- many character
                 char '"'
+                whiteSpace
                 return $ ELiteral $ LString $ concat strs
 
 unit :: Parser Expr
@@ -75,7 +66,7 @@ literal :: Parser Expr
 literal = do unit
          <|> Syntax.Parser.string
          <|> try double
-         <|> true <|> false 
+         <|> true <|> false
 
 index :: Parser Expr
 index = do e <- expression
@@ -94,8 +85,7 @@ if' = do reserved "if"
          cond <- expression
          reserved "then"
          then' <- expression
-         reserved "else"
-         else' <- expression
+         else' <- option (ELiteral LUnit) (reserved "else" >> expression)
          return $ EIf cond then' else'
 
 letreg :: Parser Expr
@@ -106,7 +96,6 @@ letreg = do
   expr <- expression
 
   return $ ELet False binds expr
-  
 
 letrec :: Parser Expr
 letrec = do
@@ -143,11 +132,19 @@ letbind = try letbindmut
           <|> letbindimut
 
 declaration :: Parser Declaration
-declaration = dname
-          <|> dtupl
-          <|> (char '_' >> return DDiscard)
-  where dname = identifier >>= \x -> return $ DName x
-        dtupl = parens $ commaSep1 declaration >>= \x -> return $ DTuple x
+declaration = fmap build (commaSep1 dterm)
+  where
+        ddiscard = (char '_' >> whiteSpace >> return DDiscard)
+        dname = fmap DName identifier
+        dparens = parens dtuple
+        dterm = ddiscard <|> dname <|> dparens <?> "declaration"
+        -- We don't use declaration as we allow empty tuples here
+        dtuple = fmap build (commaSep dterm)
+
+        build :: [Declaration] -> Declaration
+        build [] = DDiscard
+        build [single] = single
+        build tup = DTuple tup
 
 list :: Parser Expr
 list = brackets $ semiSep1 expression >>= \x -> return $ EList x
@@ -178,6 +175,7 @@ term = Syntax.Parser.var
     <|> let'
     <|> list
     <|> assign
+    <?> "expression"
 
 expression :: Parser Expr
 expression = do

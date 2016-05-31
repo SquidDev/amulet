@@ -2,17 +2,20 @@ module Main (main) where
 
 import Syntax.Parser
 
-import System.Environment 
+import System.IO
 
 prompt :: String -> IO String
 prompt x = do
   putStr x
+  hFlush stdout
   getLine
 
 main = do
   let processInp x = case (parseExpr x) of
-                      Right x -> do 
+                      Right x -> do
                         print x
                         main
-                      Left  e -> print e
+                      Left e -> do
+                        print e
+                        main
     in prompt "> " >>= processInp

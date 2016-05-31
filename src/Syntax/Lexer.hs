@@ -7,24 +7,24 @@ import Text.Parsec.Char
 import Text.Parsec.Combinator
 
 import Text.Parsec
-import Text.Parsec.Prim
 
 import Text.Parsec.String (Parser)
 
+languageDef :: T.LanguageDef u
 languageDef = emptyDef
   { T.commentStart    = "(*"
   , T.commentEnd      = "*)"
   , T.commentLine     = "--"
   , T.nestedComments  = True
   , T.identStart      = letter    <|> char '_'
-  , T.identLetter     = alphaNum  <|> char '_' 
+  , T.identLetter     = alphaNum  <|> char '_'
   , T.reservedNames   = names
   , T.caseSensitive   = True
   , T.reservedOpNames = ops }
-    where names = [ "true", "false" 
+    where names = [ "true", "false"
                   , "if", "then", "else"
                   , "and", "let", "rec"
-                  , "mut", "in" ] 
+                  , "mut", "in" ]
           ops = ["\\", "->"
             , "()", "?>", "="
             , "<-" ]
