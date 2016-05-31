@@ -11,7 +11,7 @@ param = do
   nam <- identifier
   t1  <- optionMaybe $ colon >> atype
 
-  let name = EVar nam
+  let name = EVar $ ScopeName nam
 
   return $ case t1 of
              Just atyp -> EUpcast name atyp
@@ -20,7 +20,7 @@ param = do
 atype :: Parser Type
 atype = do fs <- upper
            rest <- manyTill lower space
-           return $ TIdent $ Name $ fs:rest
+           return $ TIdent $ ScopeName $ fs:rest
 
 lambda :: Parser Expr
 lambda = do
@@ -79,7 +79,7 @@ tuple :: Parser Expr
 tuple = parens $ ETuple <$> commaSep1 expression
 
 var :: Parser Expr
-var = EVar <$> identifier
+var = EVar . ScopeName <$> identifier
 
 if' :: Parser Expr
 if' = do reserved "if"
@@ -130,6 +130,7 @@ letbindmut = do
 
   return $ LetBinding nam e1 False
 
+letbind :: Parser LetBinding
 letbind = try letbindmut
           <|> letbindimut
           <?> "let binding"

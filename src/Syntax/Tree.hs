@@ -6,10 +6,10 @@ type Ident = String
 
 -- | A valid name
 data Name
-  -- | A reference to a single name
-  = Name Ident
-  -- | A reference to a module's field
-  | ModuleName Name Ident
+  -- | A reference to a variable in a scope
+  = ScopeName Ident
+  -- | A reference to a fully qualified module member
+  | QualifiedName [Ident] Ident
   deriving (Show, Eq)
 
 data AccessLevel = Public | Private | Internal deriving (Show, Eq)
@@ -29,7 +29,7 @@ data Type
   -- | A reference to a named type
   | TIdent Name
   -- | Instantate a type with a type parameter
-  | TInst Type Type
+  | Tinst Type Type
   -- | A function type
   | TFunc Type Type
   -- | A tuple type
@@ -94,7 +94,7 @@ data Expr
   -- This must contain at least two items
   | ETuple [Expr]
   -- | The name of a variable
-  | EVar Ident
+  | EVar Name
   -- | Indexing an expression (a.b)
   | EIndex Expr Ident
   -- | Ternary expression.
@@ -120,6 +120,28 @@ data Expr
   | EAssign Assignable Expr Expr
   -- | A list constructor.
   | EList [Expr]
+  -- | A pattern match
+  | EMatch [(Pattern, Expr)]
+  deriving (Show, Eq)
+
+-- | A pattern in a pattern matching expression
+data Pattern
+  -- | Capture a variable
+  = PCapture Ident
+  -- | Matches anything
+  | PWildcard
+  -- | A constant value
+  | PLiteral Literal
+  -- | Any of these items
+  | POr [Pattern]
+  -- | All of these items
+  | PAnd [Pattern]
+  -- | Matches against a tuple
+  | PTuple [Pattern]
+  -- | Matches against a list
+  | PList [ Pattern ]
+  -- | Matches against a named pattern
+  | PPattern Name [Pattern]
   deriving (Show, Eq)
 
 data Import
