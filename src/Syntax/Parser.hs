@@ -3,24 +3,14 @@ module Syntax.Parser where
 import Syntax.Tree
 import Syntax.Lexer
 
-
-import Text.Parsec.Char
-import Text.Parsec.Combinator
-
 import Text.Parsec
-import Text.Parsec.Prim
-
 import Text.Parsec.String (Parser)
-
-import Control.Applicative hiding ((<|>), many)
-
-import Debug.Trace (trace)
 
 param :: Parser Expr
 param = do
   nam <- identifier
   t1  <- optionMaybe $ colon >> atype
-  
+
   let name = EVar nam
 
   return $ case t1 of
@@ -64,6 +54,7 @@ string = let escape = do c <- char '\\'
           in do char '"'
                 strs <- many character
                 char '"'
+                whiteSpace
                 return $ ELiteral $ LString $ concat strs
 
 unit :: Parser Expr
@@ -72,10 +63,11 @@ unit = do reservedOp "()"
 
 
 literal :: Parser Expr
-literal = do unit
+literal = unit
          <|> Syntax.Parser.string
          <|> try double
-         <|> true <|> false 
+         <|> true <|> false
+         <?> "literal"
 
 index :: Parser Expr
 index = do e <- expression
@@ -84,18 +76,17 @@ index = do e <- expression
            return $ EIndex e n
 
 tuple :: Parser Expr
-tuple = parens $ commaSep1 expression >>= \x -> return $ ETuple x
+tuple = parens $ ETuple <$> commaSep1 expression
 
 var :: Parser Expr
-var = identifier >>= \x -> return $ EVar x
+var = EVar <$> identifier
 
 if' :: Parser Expr
 if' = do reserved "if"
          cond <- expression
          reserved "then"
          then' <- expression
-         reserved "else"
-         else' <- expression
+         else' <- option (ELiteral LUnit) (reserved "else" >> expression)
          return $ EIf cond then' else'
 
 letreg :: Parser Expr
@@ -106,7 +97,6 @@ letreg = do
   expr <- expression
 
   return $ ELet False binds expr
-  
 
 letrec :: Parser Expr
 letrec = do
@@ -119,8 +109,9 @@ letrec = do
   return $ ELet True binds expr
 
 let' :: Parser Expr
-let' = do try letrec
-          <|> letreg
+let' = try letrec
+       <|> letreg
+       <?> "let expression"
 
 letbindimut :: Parser LetBinding
 letbindimut = do
@@ -141,16 +132,25 @@ letbindmut = do
 
 letbind = try letbindmut
           <|> letbindimut
+          <?> "let binding"
 
 declaration :: Parser Declaration
-declaration = dname
-          <|> dtupl
-          <|> (char '_' >> return DDiscard)
-  where dname = identifier >>= \x -> return $ DName x
-        dtupl = parens $ commaSep1 declaration >>= \x -> return $ DTuple x
+declaration = build <$> commaSep1 dterm
+  where
+        ddiscard = char '_' >> whiteSpace >> return DDiscard
+        dname = DName <$> identifier
+        dparens = parens dtuple
+        dterm = ddiscard <|> dname <|> dparens <?> "declaration"
+        -- We don't use declaration as we allow empty tuples here
+        dtuple = build <$> commaSep dterm
+
+        build :: [Declaration] -> Declaration
+        build [] = DDiscard
+        build [single] = single
+        build tup = DTuple tup
 
 list :: Parser Expr
-list = brackets $ semiSep1 expression >>= \x -> return $ EList x
+list = brackets $ EList <$> semiSep1 expression
 
 assign :: Parser Expr
 assign = do
@@ -163,21 +163,28 @@ assign = do
   return $ EAssign nm e1 e2
 
 assignable :: Parser Assignable
-assignable = tupl <|> nam
-  where tupl = (parens $ commaSep1 assignable) >>= \x -> return $ ATuple x
-        nam  = identifier >>= \x -> return $ AName x
-
+assignable = atuple
+  where
+        aname  = AName <$> identifier
+        aparens = parens atuple
+        aterm = aname <|> aparens
+        atuple = build <$> commaSep1 aterm
+        build :: [Assignable] -> Assignable
+        build [single] = single
+        build tup = ATuple tup
 
 term :: Parser Expr
-term = Syntax.Parser.var
-    <|> lambda
+term =
+    lambda
     <|> literal
     <|> tuple
     <|> parens term
     <|> if'
     <|> let'
     <|> list
-    <|> assign
+    <|> try assign
+    <|> Syntax.Parser.var
+    <?> "expression"
 
 expression :: Parser Expr
 expression = do
