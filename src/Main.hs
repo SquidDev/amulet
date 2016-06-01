@@ -2,6 +2,7 @@ module Main (main) where
 
 import Syntax.Parser
 import Infer
+import PrettyPrint
 
 import System.IO
 
@@ -11,10 +12,9 @@ prompt x = do
   hFlush stdout
   getLine
 
-main = do
-  let processInp x = case (parseExpr x) of
+main = let processInp x = case parseExpr x of
                       Right x -> do
-                        print x
+                        putStrLn $ pshow x
                         main
                       Left e -> do
                         print e

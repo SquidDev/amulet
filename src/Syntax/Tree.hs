@@ -121,7 +121,7 @@ data Expr
   -- | A list constructor.
   | EList [Expr]
   -- | A pattern match
-  | EMatch [(Pattern, Expr)]
+  | EMatch [(Pattern, Expr)] Expr
   deriving (Show, Eq)
 
 -- | A pattern in a pattern matching expression
@@ -141,7 +141,7 @@ data Pattern
   -- | Matches against a list
   | PList [ Pattern ]
   -- | Matches against a named pattern
-  | PPattern Name [Pattern]
+  | PPattern Name Pattern
   deriving (Show, Eq)
 
 data Import
