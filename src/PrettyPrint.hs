@@ -4,6 +4,7 @@ module PrettyPrint where
 
 import Data.Monoid
 import Syntax.Tree
+import Infer
 
 import Data.List
 
@@ -31,7 +32,7 @@ instance Pretty String where
 
 instance Pretty Name where
   pprint (ScopeName x) = pprint x
-  pprint (QualifiedName xs x) = pprint $ intercalate "." xs ++ x
+  pprint (QualifiedName xs x) = pprint $ intercalate "." xs ++ "." ++ x
 
 instance Pretty AccessLevel where
   pprint Public   = keyword "public"
@@ -45,9 +46,9 @@ instance Pretty Type where
   pprint (TFunc t t') = type' t <+> " -> " <+> type' t
   pprint (TTuple ts)  = parens $ intercalate ", " (map (pshow . type') ts)
   pprint (TForAll tv tc td) = keyword "forall " <+> '\'':tv <+> ". " <+> constraints tc <+> " => " <+> td
-    where constraints [tc] = pshow tc
-          constraints e@(x:xs) = "(" ++ intercalate ", " (map pshow e) ++ ")"
-
+    where constraints [] = ""
+          constraints [tc] = pshow tc
+          constraints e@(_:_) = "(" ++ intercalate ", " (map pshow e) ++ ")"
 
 instance Pretty Literal where
   pprint (LString ls) = literal ls
@@ -100,6 +101,15 @@ instance Pretty Pattern where
   pprint (PTuple ps) = parens $ intercalate ", " $ map pshow ps
   pprint (PList ps) = brackets $ intercalate "; " $ map pshow ps
   pprint (PPattern n p) = n <+> "@" <+> parens p
+
+instance Pretty TypeError where
+  pprint (UnificationFail t1 t2) = "Cannot unify " <+> t1 <+> " and " <+> t2
+  pprint (InfiniteType var ty) = "Infinite type for var " <+> var <+> " under type " <+> ty
+  pprint (UnboundVariable var) = "Unbound variable " <+> var
+  pprint (Ambigious cons) = "Ambiguous between " <+> (parens $ intercalate ", " $ map (pshow . pcons) cons)
+    where pcons (l, r) = l <+> " <:> " <+> r
+  pprint (UnificationMismatch t1 t2) = "Varying lengths for " <+> m t1 <+> " and " <+> m t2
+    where m = parens . intercalate ", " . map pshow
 
 (<+>) :: (Pretty a, Pretty b) => a -> b -> PrettyPrinter
 a <+> b = pprint a `mappend` pprint b
