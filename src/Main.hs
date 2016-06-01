@@ -1,6 +1,7 @@
 module Main (main) where
 
 import Syntax.Parser
+import Infer
 
 import System.IO
 
