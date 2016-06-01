@@ -10,33 +10,33 @@ data Name
   = ScopeName Ident
   -- | A reference to a fully qualified module member
   | QualifiedName [Ident] Ident
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
-data AccessLevel = Public | Private | Internal deriving (Show, Eq)
+data AccessLevel = Public | Private | Internal deriving (Show, Eq, Ord)
 
 type TypeVar = String
 
 -- | All basic types
 data Type
-  -- | The top type
-  = TValue
-  -- | The bottom type
-  | TNothing
-  -- | The unit type
-  | TUnit
   -- | A reference to a type parameter
-  | TVar TypeVar
+  = TVar TypeVar
   -- | A reference to a named type
   | TIdent Name
   -- | Instantate a type with a type parameter
-  | Tinst Type Type
+  | TInst Type Type
   -- | A function type
   | TFunc Type Type
   -- | A tuple type
   | TTuple [Type]
   -- | A generic type, with a constraint.
   | TForAll { var :: TypeVar, cons :: [Type], td:: Type }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
+
+unitType :: Type
+unitType = TIdent $ QualifiedName ["Amulet"] "Unit"
+
+nothingType :: Type
+nothingType = TIdent $ QualifiedName ["Amulet"] "Nothing"
 
 data TypeDef
   -- | A tagged union
@@ -45,12 +45,12 @@ data TypeDef
   | TDRecord [RecordRow]
   -- | An alias for another type
   | TDAlias Type
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 -- | A single row of a record
 data RecordRow
   = RecordRow { key :: Ident, ty :: Type, mutable :: Bool, access :: AccessLevel }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 -- | A basic literal
 data Literal
