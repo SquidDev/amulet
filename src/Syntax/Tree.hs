@@ -32,12 +32,6 @@ data Type
   | TForAll { var :: TypeVar, cons :: [Type], td:: Type }
   deriving (Show, Eq, Ord)
 
-unitType :: Type
-unitType = TIdent $ QualifiedName ["Amulet"] "Unit"
-
-nothingType :: Type
-nothingType = TIdent $ QualifiedName ["Amulet"] "Nothing"
-
 data TypeDef
   -- | A tagged union
   = TDUnion [(Ident, Type)]
@@ -113,7 +107,7 @@ data Expr
   | EDowncast Expr Type
   -- | A lambda definition.
   -- A typed lambda is represented with a lambda then an upcast
-  | ELambda Expr Expr
+  | ELambda Ident (Maybe Type) Expr
   -- | A let binding
   | ELet { recursive :: Bool, vars :: [LetBinding], expr :: Expr }
   -- | Assign an expression to a variable

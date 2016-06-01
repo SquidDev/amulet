@@ -8,16 +8,12 @@ import Text.Parsec.String (Parser)
 
 import qualified Text.Parsec.Expr as Ex
 
-param :: Parser Expr
+param :: Parser (Ident, Maybe Type)
 param = do
   nam <- identifier
   t1  <- optionMaybe $ colon >> atype
 
-  let name = EVar $ ScopeName nam
-
-  return $ case t1 of
-             Just atyp -> EUpcast name atyp
-             Nothing   -> name
+  return (nam, t1)
 
 atype :: Parser Type
 atype = do fs <- upper
@@ -30,7 +26,7 @@ lambda = do
   args <- many1 param
   reservedOp "->"
   body <- expression
-  return $ foldr ELambda body args
+  return $ foldr (\(n, ty) e -> ELambda n ty e) body args
 
 true, false :: Parser Literal
 true = do reserved "true"
@@ -59,7 +55,7 @@ string = let escape = do c <- char '\\'
                 whiteSpace
                 return $ LString $ concat strs
 
-unit :: Parser Literal 
+unit :: Parser Literal
 unit = do reservedOp "()"
           return LUnit
 
@@ -187,7 +183,7 @@ term =
     <|> let'
     <|> list
     <|> try assign
-    <|> match 
+    <|> match
     <|> Syntax.Parser.var
     <?> "expression"
 
@@ -207,7 +203,7 @@ term' :: Parser Expr
 term' = Ex.buildExpressionParser table term
   where table = [[ binary "?>" downcastop Ex.AssocLeft
                  , binary ":>" upcastop Ex.AssocLeft ]]
-        binary wrd fn = Ex.Infix (reserved wrd >> return fn) 
+        binary wrd fn = Ex.Infix (reserved wrd >> return fn)
 
 expression :: Parser Expr
 expression = do
@@ -238,7 +234,7 @@ matchp = wildcard
           return $ PPattern (ScopeName x) p
 
 matcharm :: Parser (Pattern, Expr)
-matcharm = (do 
+matcharm = (do
   reservedOp "|"
   pat <- matchp
   reservedOp "->"
