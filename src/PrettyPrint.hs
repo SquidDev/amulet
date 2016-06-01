@@ -6,7 +6,6 @@ import Data.Monoid
 import Syntax.Tree
 
 import Data.List
-import Text.Printf
 
 data PrettyPrinter
   = PrettyPrinter { render :: String }
@@ -78,15 +77,15 @@ instance Pretty Expr where
   pprint (EIf c t e) = keyword "if " <+> c <+> keyword " then " <+> t <+> keyword " else " <+> e
   pprint (EApply e v) = e <+> " " <+> v
   pprint (EBinOp o l r) = l <+> " " <+> o <+> " " <+> r
-  pprint (ELambda (EUpcast n t) b) = "\\" <+> parens (n <+> ": " <+> t) <+> " -> " <+> b
-  pprint (ELambda e b) = "\\" <+> e <+> " -> " <+> b
+  pprint (ELambda n (Just t) b) = "\\" <+> parens (n <+> ": " <+> t) <+> " -> " <+> b
+  pprint (ELambda e Nothing b) = "\\" <+> e <+> " -> " <+> b
   pprint (EUpcast e t) = e <+> " :> " <+> t
   pprint (EDowncast e t) = e <+> " ?> " <+> t
   pprint (ELet True vs e) = keyword "let rec " <+> intercalate " \x1b[1;32mand\x1b[0m " (map pshow vs) <+> keyword " in " <+> e
   pprint (ELet False vs e) = keyword "let " <+> intercalate " \x1b[1;32mand\x1b[0m " (map pshow vs) <+> keyword " in " <+> e
   pprint (EList es) = brackets $ intercalate "; " $ map pshow es
   pprint (EAssign a e c) = a <+> " <- " <+> e <+> " in " <+> c
-  pprint (EMatch ps e) = keyword "match " <+> e <+> keyword " with\n" <+> pparms ps 
+  pprint (EMatch ps e) = keyword "match " <+> e <+> keyword " with\n" <+> pparms ps
     where pparm (pat, exp) = "    | " <+> pat <+> " -> " <+> exp
           pparms x = intercalate "\n" $ map (pshow . pparm) x
 
@@ -121,4 +120,3 @@ keyword a = colour a 3
 literal a = colour a 4
 type' a = colour a 5
 typevar a = colour a 6
-

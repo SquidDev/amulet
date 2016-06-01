@@ -22,15 +22,19 @@ languageDef = emptyDef
   , T.caseSensitive   = True
   , T.reservedOpNames = ops }
     where names = [ "true", "false"
-                  , "if", "then", "else"
+                  , "if", "then", "else", "forall"
                   , "and", "let", "rec", "and", "or"
                   , "mut", "in", "match", "with" ]
           ops = ["\\", "->", ","
                 , "()", "?>", "=", ":>"
-                , "<-", "&&", "||", "|"]
+                , "<-", "&&", "||", "|"
+                , "=>"]
 
 lexer :: T.TokenParser ()
 lexer = T.makeTokenParser languageDef
+
+lexeme :: Parser a -> Parser a
+lexeme = T.lexeme lexer
 
 identifier :: Parser String
 identifier = T.identifier lexer
