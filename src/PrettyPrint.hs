@@ -40,13 +40,15 @@ instance Pretty AccessLevel where
   pprint Internal = keyword "internal"
 
 instance Pretty Type where
-  pprint (TVar tv)  = type' tv
+  pprint (TVar tv)  = typevar $ '\'':tv
   pprint (TIdent n) = type' n
   pprint (TInst t t') = type' t <+> "<" <+> type' t' <+> ">"
   pprint (TFunc t t') = type' t <+> " -> " <+> type' t'
   pprint (TTuple ts)  = parens $ intercalate ", " (map (pshow . type') ts)
-  pprint (TForAll tv tc td) = keyword "forall " <+> constraints <+> ". " <+> td
-    where constraints = parens $ intercalate ", " $ map pshow tc
+  pprint (TForAll tv tc td) = keyword "forall " <+> '\'':tv <+> ". " <+> constraints tc <+> " => " <+> td
+    where constraints [tc] = pshow tc
+          constraints e@(x:xs) = "(" ++ intercalate ", " (map pshow e) ++ ")"
+
 
 instance Pretty Literal where
   pprint (LString ls) = literal ls
@@ -118,4 +120,5 @@ colour a n = clr <+> a <+> "\x1b[0m"
 keyword a = colour a 3
 literal a = colour a 4
 type' a = colour a 5
+typevar a = colour a 6
 
