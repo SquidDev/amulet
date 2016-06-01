@@ -9,20 +9,55 @@ import Text.Parsec.String (Parser)
 import qualified Text.Parsec.Expr as Ex
 
 param :: Parser Expr
-param = do
-  nam <- identifier
-  t1  <- optionMaybe $ colon >> atype
+param = typed <|> untyped
+  where untyped = EVar . ScopeName <$> identifier
+        typed = parens $
+          do nam <- identifier
+             t1  <- optionMaybe $ colon >> atype
 
-  let name = EVar $ ScopeName nam
+             let name = EVar $ ScopeName nam
 
-  return $ case t1 of
-             Just atyp -> EUpcast name atyp
-             Nothing   -> name
+             return $ case t1 of
+                        Just atyp -> EUpcast name atyp
+                        Nothing   -> name
 
 atype :: Parser Type
-atype = do fs <- upper
-           rest <- manyTill lower space
-           return $ TIdent $ ScopeName $ fs:rest
+atype =
+  forall' <|> chainr1 atype' afun
+    where afun = lexeme $ do reservedOp "->"
+                             return TFunc
+          typevar = lexeme $ do
+            char '\''
+            x <- many letter
+            return $ TVar x
+          typename = lexeme $ do
+            x <- upper
+            xs <- many letter
+            return $ TIdent $ ScopeName $ x:xs
+          tinst = lexeme $ do
+            tn <- typename
+            tv <- angles typevar
+            return $ TInst tn tv
+          forall' = lexeme $ do
+            reserved "forall"
+            v <- typevar
+            reserved "."
+            x <- optionMaybe constraints
+            t <- chainr1 atype' afun
+            let (TVar v') = v in
+              return $ case x of
+                         Just x' -> TForAll v' x' t
+                         Nothing -> TForAll v' [] t
+
+          atype' = parens atype <|> try tinst <|> typevar <|> typename
+          constraints = single <|> many'
+          single = do x <- tinst
+                      reservedOp "=>"
+                      return [x]
+          many' = do
+            x <- parens $ commaSep1 tinst
+            reservedOp "=>"
+            return x
 
 lambda :: Parser Expr
 lambda = do
