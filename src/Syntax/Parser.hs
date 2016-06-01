@@ -210,13 +210,14 @@ term :: Parser Expr
 term =
     lambda
     <|> (ELiteral <$> literal)
+    <|> let'
     <|> tuple
     <|> parens term
     <|> if'
-    <|> let'
     <|> list
     <|> try assign
     <|> match
+    <|> function
     <|> Syntax.Parser.var
     <?> "expression"
 
@@ -235,8 +236,22 @@ upcastop x _ = x
 term' :: Parser Expr
 term' = Ex.buildExpressionParser table term
   where table = [[ binary "?>" downcastop Ex.AssocLeft
-                 , binary ":>" upcastop Ex.AssocLeft ]]
+                 , binary ":>" upcastop Ex.AssocLeft ]
+                ,[ Ex.Infix dynamicBinOp Ex.AssocLeft ]]
         binary wrd fn = Ex.Infix (reserved wrd >> return fn)
+
+dynamicBinOp :: Parser (Expr -> Expr -> Expr)
+dynamicBinOp = infix' <|> op
+  where infix' = lexeme $ do
+                    char '`'
+                    x <- identifier
+                    char '`'
+                    return $ EBinOp (EVar $ ScopeName x)
+        op = lexeme $ do
+          x <- operator
+          return $ EBinOp (EVar $ ScopeName x)
+
+
 
 expression :: Parser Expr
 expression = do
@@ -244,11 +259,11 @@ expression = do
   return $ foldl1 EApply t
 
 parseExpr :: String -> Either ParseError Expr
-parseExpr = parse (contents term) "<stdin>"
+parseExpr = parse (contents expression) "<stdin>"
 
 
-matchp :: Parser Pattern
-matchp = wildcard
+matchp' :: Parser Pattern
+matchp' = wildcard
       <|> plit
       <|> ptup
       <|> plst
@@ -266,6 +281,15 @@ matchp = wildcard
           p <- parens matchp
           return $ PPattern (ScopeName x) p
 
+matchp :: Parser Pattern
+matchp = Ex.buildExpressionParser table matchp'
+  where binary nm rv = Ex.Infix (reserved nm >> rv) Ex.AssocLeft
+        binaryOp nm rv = Ex.Infix (reservedOp nm >> rv) Ex.AssocLeft
+
+        table = [[ binaryOp "|"  $ return por
+                 , binaryOp "&"  $ return pand ]]
+        por x y = POr [x, y]
+        pand x y = PAnd [x, y]
 matcharm :: Parser (Pattern, Expr)
 matcharm = (do
   reservedOp "|"
@@ -283,3 +307,9 @@ match = do
   ps <- many1 matcharm
 
   return $ EMatch ps e1
+
+function :: Parser Expr
+function = do
+  reserved "function"
+  ps <- many1 matcharm
+  return $ ELambda "x" Nothing $ EMatch ps (EVar $ ScopeName "x")

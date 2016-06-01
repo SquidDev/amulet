@@ -21,9 +21,9 @@ languageDef = emptyDef
   , T.reservedNames   = names
   , T.caseSensitive   = True
   , T.reservedOpNames = ops }
-    where names = [ "true", "false"
+    where names = [ "true", "false", "function"
                   , "if", "then", "else", "forall"
-                  , "and", "let", "rec", "and", "or"
+                  , "and", "let", "rec", "and", "or", "when"
                   , "mut", "in", "match", "with" ]
           ops = ["\\", "->", ","
                 , "()", "?>", "=", ":>"

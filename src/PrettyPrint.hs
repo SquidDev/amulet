@@ -120,3 +120,6 @@ keyword a = colour a 3
 literal a = colour a 4
 type' a = colour a 5
 typevar a = colour a 6
+
+ppsignature :: (Name, Expr) -> PrettyPrinter
+ppsignature (nam, ex) = colour nam 2 <+> " :: " <+> ex
