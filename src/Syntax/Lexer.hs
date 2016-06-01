@@ -23,11 +23,11 @@ languageDef = emptyDef
   , T.reservedOpNames = ops }
     where names = [ "true", "false"
                   , "if", "then", "else"
-                  , "and", "let", "rec"
-                  , "mut", "in" ]
-          ops = ["\\", "->"
-            , "()", "?>", "="
-            , "<-" ]
+                  , "and", "let", "rec", "and", "or"
+                  , "mut", "in", "match", "with" ]
+          ops = ["\\", "->", ","
+                , "()", "?>", "=", ":>"
+                , "<-", "&&", "||", "|"]
 
 lexer :: T.TokenParser ()
 lexer = T.makeTokenParser languageDef

@@ -6,6 +6,8 @@ import Syntax.Lexer
 import Text.Parsec
 import Text.Parsec.String (Parser)
 
+import qualified Text.Parsec.Expr as Ex
+
 param :: Parser Expr
 param = do
   nam <- identifier
@@ -30,22 +32,22 @@ lambda = do
   body <- expression
   return $ foldr ELambda body args
 
-true, false :: Parser Expr
+true, false :: Parser Literal
 true = do reserved "true"
-          return $ ELiteral $ LBoolean True
+          return $ LBoolean True
 
 false = do reserved "false"
-           return $ ELiteral $ LBoolean False
+           return $ LBoolean False
 
-double :: Parser Expr
+double :: Parser Literal
 double = do
   x <- natOrFloat
   return $ case x of
-    Right x -> ELiteral $ LNumber x
-    Left i -> ELiteral $ LNumber $ fromIntegral i
+    Right x ->  LNumber x
+    Left i ->  LNumber $ fromIntegral i
 
 
-string :: Parser Expr
+string :: Parser Literal
 string = let escape = do c <- char '\\'
                          d <- oneOf "\\\"0nrvtbf"
                          return [c, d]
@@ -55,14 +57,14 @@ string = let escape = do c <- char '\\'
                 strs <- many character
                 char '"'
                 whiteSpace
-                return $ ELiteral $ LString $ concat strs
+                return $ LString $ concat strs
 
-unit :: Parser Expr
+unit :: Parser Literal 
 unit = do reservedOp "()"
-          return $ ELiteral LUnit
+          return LUnit
 
 
-literal :: Parser Expr
+literal :: Parser Literal
 literal = unit
          <|> Syntax.Parser.string
          <|> try double
@@ -163,6 +165,7 @@ assign = do
 
   return $ EAssign nm e1 e2
 
+
 assignable :: Parser Assignable
 assignable = atuple
   where
@@ -177,20 +180,77 @@ assignable = atuple
 term :: Parser Expr
 term =
     lambda
-    <|> literal
+    <|> (ELiteral <$> literal)
     <|> tuple
     <|> parens term
     <|> if'
     <|> let'
     <|> list
     <|> try assign
+    <|> match 
     <|> Syntax.Parser.var
     <?> "expression"
 
+downcastop :: Expr -> Expr -> Expr
+downcastop x (EVar (ScopeName n))
+  | head n `elem` ['A'..'Z'] = EDowncast x $ TIdent $ ScopeName n
+  | otherwise                = x
+downcastop x _ = x
+
+upcastop :: Expr -> Expr -> Expr
+upcastop x (EVar (ScopeName n))
+  | head n `elem` ['A'..'Z'] = EUpcast x $ TIdent $ ScopeName n
+  | otherwise                = x
+upcastop x _ = x
+
+term' :: Parser Expr
+term' = Ex.buildExpressionParser table term
+  where table = [[ binary "?>" downcastop Ex.AssocLeft
+                 , binary ":>" upcastop Ex.AssocLeft ]]
+        binary wrd fn = Ex.Infix (reserved wrd >> return fn) 
+
 expression :: Parser Expr
 expression = do
-  t <- many1 term
+  t <- many1 term'
   return $ foldl1 EApply t
 
 parseExpr :: String -> Either ParseError Expr
 parseExpr = parse (contents term) "<stdin>"
+
+
+matchp :: Parser Pattern
+matchp = wildcard
+      <|> plit
+      <|> ptup
+      <|> plst
+      <|> pbound
+      <|> capture
+      <?> "match pattern"
+  where wildcard = reservedOp "_" >> return PWildcard
+        capture  = PCapture <$> identifier
+        ptup     = PTuple <$> (parens $ commaSep1 matchp)
+        plst     = PList <$> (brackets $ semiSep1 matchp)
+        plit     = PLiteral <$> literal
+        pbound = do
+          x <- identifier
+          reservedOp "@"
+          p <- parens matchp
+          return $ PPattern (ScopeName x) [p]
+
+matcharm :: Parser (Pattern, Expr)
+matcharm = (do 
+  reservedOp "|"
+  pat <- matchp
+  reservedOp "->"
+  exp <- expression
+
+  return (pat, exp)) <?> "match arm"
+
+match :: Parser Expr
+match = do
+  reserved "match"
+  e1 <- expression
+  reserved "with"
+  ps <- many1 matcharm
+
+  return $ EMatch ps
