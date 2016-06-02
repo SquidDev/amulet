@@ -6,7 +6,6 @@ module Pretty where
 
 import Control.Monad.Reader
 import Control.Monad.Writer
-import Control.Monad.Identity
 
 import Data.Monoid
 
@@ -15,7 +14,7 @@ import Data.List
 import Infer
 
 type PrettyPrinter = ReaderT PParam
-                      (WriterT String Identity) ()
+                      (Writer String ) ()
 
 data PParam
   = PParam { colours       :: Bool
@@ -27,7 +26,7 @@ data PParam
 
 
 runPrinter :: PrettyPrinter -> PParam -> String
-runPrinter act ctx = let (_, ret) = runIdentity $ runWriterT (runReaderT act ctx) in ret
+runPrinter act ctx = let (_, ret) = runWriter (runReaderT act ctx) in ret
 
 colour :: Pretty a => Integer -> a -> PrettyPrinter
 colour clr cmb = do
