@@ -125,7 +125,7 @@ instance Pretty Type where
   pprint (TFunc t t') = t <+> " -> " <+> t'
   pprint (TTuple ts) = do
     x <- ask
-    parens $ intercalate " * " $ map ((`ppshow` x) . type') ts
+    parens $ intercalate " * " $ map (`ppshow` x) ts
 
 instance Pretty Literal where
   pprint (LString ls) = literal ls
