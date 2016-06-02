@@ -26,7 +26,7 @@ data InferState = InferState { count :: Int } deriving (Show)
 initInfer :: InferState
 initInfer = InferState 0
 
-type Constraint = (Type, Type)
+type Constraint = (Type, Type, Expr)
 
 type Unifier = (Subst, [Constraint])
 
@@ -40,9 +40,11 @@ newtype Subst = Subst (Map.Map TypeVar Type) deriving (Eq, Ord, Show, Monoid)
 data TypeError
   = UnificationFail Type Type
   | InfiniteType TypeVar Type
-  | UnboundVariable TypeVar
+  | UnboundVariable Name
   | Ambigious [Constraint]
   | UnificationMismatch [Type] [Type]
+  | ExprContext Expr TypeError
+  | TypeContext Type Type TypeError
   deriving (Show)
 
 class Substitutable a where
@@ -52,12 +54,12 @@ class Substitutable a where
 instance Substitutable Type where
   apply (Subst s) t@(TVar a) = Map.findWithDefault t a s
   apply _ (TIdent name) = TIdent name -- Should we substitute inside?
-  apply (Subst s) (TInst TForAll { var = var, cons = _, td = ty } replace) =
+  apply (Subst s) (TInst (TForAll var _ ty) replace) =
     apply (Subst $ Map.insert var replace s) ty
   apply s (TInst ty rep) = apply s ty `TInst` apply s rep
   apply s (TFunc a r) = apply s a `TFunc` apply s r
   apply s (TTuple items) = TTuple $ map (apply s) items
-  apply s@(Subst m) TForAll {var = var, cons = cons, td = td} = case Map.lookup var m of
+  apply s@(Subst m) (TForAll var cons td) = case Map.lookup var m of
                                                                   Just (TVar r)  -> TForAll{ var = r, cons = cons, td = apply s td }
                                                                   Just _ -> apply s td
                                                                   Nothing -> TForAll { var = var, cons = map (apply s) cons, td = apply s td }
@@ -67,11 +69,11 @@ instance Substitutable Type where
   ftv (TInst ty rep) = ftv ty `Set.union` ftv rep
   ftv (TFunc a r) = ftv a `Set.union` ftv r
   ftv (TTuple items) = Set.unions $ map ftv items
-  ftv TForAll { var = var, cons = cons, td = td} = Set.delete var $ Set.unions $ ftv td : map ftv cons
+  ftv (TForAll var cons td) = Set.delete var $ Set.unions $ ftv td : map ftv cons
 
 instance Substitutable Constraint where
-  apply s (t1, t2) = (apply s t1, apply s t2)
-  ftv (t1, t2) = ftv t1 `Set.union` ftv t2
+  apply s (t1, t2, expr) = (apply s t1, apply s t2, expr)
+  ftv (t1, t2, _) = ftv t1 `Set.union` ftv t2
 
 instance Substitutable a => Substitutable [a] where
   apply = map . apply
@@ -84,8 +86,9 @@ instance Substitutable TypeEnv where
 
 tyVars :: Type -> Set.Set TypeVar
 tyVars (TVar _) = Set.empty
+tyVars (TInst _ _) = Set.empty
 tyVars (TIdent _) = Set.empty
-tyVars TForAll { var = var, cons = _, td = ty} = Set.insert var $ tyVars ty
+tyVars (TForAll var _ ty) = Set.insert var $ tyVars ty
 tyVars (TFunc a r) = tyVars a `Set.union` tyVars r
 tyVars (TTuple items) = Set.unions $ map tyVars items
 
@@ -103,7 +106,7 @@ lookupEnv ::Name -> Infer Type
 lookupEnv x = do
   (TypeEnv env) <- ask
   case Map.lookup x env of
-    Nothing -> throwError $ UnboundVariable (show x)
+    Nothing -> throwError $ UnboundVariable x
     Just s ->  instantiate s
 
 nullSubst :: Subst
@@ -131,10 +134,12 @@ unifies :: Type -> Type -> Solve Subst
 unifies t1 t2 | t1 == t2 = return nullSubst
 unifies (TVar a) t = bind a t
 unifies t (TVar a) = bind a t
-unifies (TFunc l r) (TFunc l' r') = unifyMany [l, r] [l', r']
-unifies (TTuple a) (TTuple b) = unifyMany a b
-unifies (TForAll _ _ t1) t2 = unifies t1 t2
-unifies t1 (TForAll _ _ t2) = unifies t1 t2
+-- I'm sorry for the repeated catchError: however I couldn't get it to type check
+-- when abstracted into another function.
+unifies t1@(TFunc l r) t2@(TFunc l' r') = unifyMany [l, r] [l', r'] `catchError` (throwError . TypeContext t1 t2)
+unifies t1@(TTuple a) t2@(TTuple b) = unifyMany a b `catchError` (throwError . TypeContext t1 t2)
+unifies (TForAll _ _ t1) t2 = unifies t1 t2  `catchError` (throwError . TypeContext t1 t2)
+unifies t1 (TForAll _ _ t2) = unifies t1 t2 `catchError` (throwError . TypeContext t1 t2)
 unifies t1 t2 = throwError $ UnificationFail t1 t2
 
 -- | Unify many types together
@@ -155,15 +160,14 @@ instantiate ty = do
   return $ apply s ty
 
 -- | Create TForAlls for free type variables
-generalize :: TypeEnv -> Type-> Type
+generalize :: TypeEnv -> Type -> Type
 generalize env t =
   let items = Set.toList $ ftv t `Set.difference` ftv env in
   foldl (\ty name -> TForAll { var = name, cons = [], td = ty }) t items
 
-
 -- | Unify two types
-uni :: Type -> Type -> Infer ()
-uni t1 t2 = tell [(t1, t2)]
+uni :: Expr -> Type -> Type -> Infer ()
+uni e t1 t2 = tell [(t1, t2, e)]
 
 -- | Extend type environment
 inEnv :: Name -> Type -> Infer a -> Infer a
@@ -176,6 +180,6 @@ solver :: Unifier -> Solve Subst
 solver (su, cs) =
   case cs of
     [] -> return su
-    ((t1, t2) : cs0) -> do
-        su1 <- unifies t1 t2
+    ((t1, t2, expr) : cs0) -> do
+        su1 <- unifies t1 t2 `catchError` (throwError . ExprContext expr)
         solver (su1 `compose` su, apply su1 cs0)

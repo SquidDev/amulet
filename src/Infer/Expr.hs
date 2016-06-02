@@ -37,11 +37,11 @@ infer (ELambda x ty e) = do
   t <- inEnv (ScopeName x) tv $ infer e
   return $ tv `TFunc` t
 
-infer (EApply e1 e2) = do
+infer e@(EApply e1 e2) = do
   tfun <- infer e1
   targ <- infer e2
   tret <- fresh
-  uni tfun $ targ `TFunc` tret
+  uni e tfun $ targ `TFunc` tret
   return tret
 
 infer ELet { recursive = recur, vars = vars, expr = rest } = do
@@ -56,17 +56,17 @@ infer ELet { recursive = recur, vars = vars, expr = rest } = do
   let sc = generalize env t1
   inEnv x sc $ infer rest
 
-infer (EIf cond tr fl) = do
+infer e@(EIf cond tr fl) = do
   tcond <- infer cond
   ttr <- infer tr
   tfl <- infer fl
-  uni tcond typeBool
-  uni ttr tfl
+  uni e tcond typeBool
+  uni e ttr tfl
   return ttr
 
-infer (EUpcast expr ty) = do
+infer e@(EUpcast expr ty) = do
   t1 <- infer expr
-  uni t1 ty
+  uni e t1 ty
   return ty
 
 infer (EDowncast expr ty) = do
@@ -75,22 +75,22 @@ infer (EDowncast expr ty) = do
 
 infer (ETuple exprs) = TTuple <$> mapM infer exprs
 
-infer (EList exprs) = do
+infer e@(EList exprs) = do
   tys <- mapM infer exprs
   ty <- case tys of
     [] -> fresh
     [ty] -> return ty
     ty:tys -> do
-      mapM_ (uni ty) tys
+      mapM_ (uni e ty) tys
       return ty
   return $ TInst typeList ty
 
-infer (EBinOp l op r) = do
+infer e@(EBinOp l op r) = do
   tl <- infer l
   top <- infer op
   tr <- infer r
 
   tret <- fresh
 
-  uni top $ TFunc tl $ TFunc tr tret
+  uni e top $ TFunc tl $ TFunc tr tret
   return tret

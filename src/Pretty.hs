@@ -7,8 +7,6 @@ module Pretty where
 import Control.Monad.Reader
 import Control.Monad.Writer
 
-import Data.Monoid
-
 import Syntax.Tree
 import Data.List
 import Infer
@@ -217,11 +215,13 @@ instance Pretty TypeError where
     env <- ask
     pprint "Ambiguous between "
     parens $ intercalate ", " $ map ((`ppshow` env) . pcons) cons
-      where pcons (l, r) = l <+> " <:> " <+> r
+      where pcons (l, r, e) = l <+> " <:> " <+> r <+> " in " <+> e
 
   pprint (UnificationMismatch t1 t2) = "Varying lengths for " <+> m t1 <+> " and " <+> m t2
     where m ts = do env <- ask
                     parens $ intercalate ", " $ map (`ppshow` env) ts
+  pprint (TypeContext t1 t2 err) = err <+> "\n  when unifying " <+> t1 <+> " and " <+> t2
+  pprint (ExprContext expr err)  = err <+> "\n in " <+> expr
 
 ppshow :: Pretty a => a -> PParam -> String
 ppshow = runPrinter . pprint
