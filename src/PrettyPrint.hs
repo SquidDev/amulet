@@ -42,7 +42,7 @@ instance Pretty Type where
   pprint (TVar tv)  = typevar $ '\'':tv
   pprint (TIdent n) = type' n
   pprint (TInst t t') = type' t <+> "<" <+> type' t' <+> ">"
-  pprint (TFunc t t') = type' t <+> " -> " <+> type' t'
+  pprint (TFunc t t') = type' t <+> " -> " <+> type' t
   pprint (TTuple ts)  = parens $ intercalate ", " (map (pshow . type') ts)
   pprint (TForAll tv tc td) = keyword "forall " <+> '\'':tv <+> ". " <+> constraints tc <+> " => " <+> td
     where constraints [tc] = pshow tc
@@ -60,6 +60,8 @@ instance Pretty Declaration where
   pprint (DName i) = pprint i
   pprint DDiscard = pprint "_"
   pprint (DTuple ds) = parens $ intercalate ", " $ map pshow ds
+  pprint (DRecord ts) = braces $ intercalate "; " $ map show' ts
+    where show' (x, y) = render $ x <+> " = " <+> y 
 
 instance Pretty Assignable where
   pprint (AName i) = pprint i
@@ -109,6 +111,8 @@ brackets a = "[" <+> a <+> "]"
 parens :: Pretty a => a -> PrettyPrinter
 parens a = "(" <+> a <+> ")"
 
+braces :: Pretty a => a -> PrettyPrinter
+braces a = "{" <+> a <+> "}"
 showpp :: Show a => a -> PrettyPrinter
 showpp = pprint . show
 
