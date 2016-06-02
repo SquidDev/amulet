@@ -10,6 +10,8 @@ import Text.Parsec
 
 import Text.Parsec.String (Parser)
 
+import Syntax.Tree
+
 languageDef :: T.LanguageDef u
 languageDef = emptyDef
   { T.commentStart    = "(*"
@@ -22,7 +24,7 @@ languageDef = emptyDef
   , T.caseSensitive   = True
   , T.reservedOpNames = ops }
     where names = [ "true", "false", "function"
-                  , "if", "then", "else", "forall"
+                  , "if", "then", "else", "forall"   
                   , "and", "let", "rec", "and", "or", "when"
                   , "mut", "in", "match", "with" ]
           ops = ["\\", "->", ","
@@ -108,3 +110,26 @@ contents p = do
   r <- p
   eof
   return r
+
+
+checkType :: String -> Name -> Parser Name
+checkType xs rv = if valid then return rv else fail "the name of a type must start with uppercase"
+  where valid = head xs `elem` ['A'..'Z']
+
+typename = lexeme $ do
+  x <- name
+  case x of
+    ScopeName x' -> checkType x' x
+    QualifiedName _ x' -> checkType x' x
+
+name :: Parser Name
+name = lexeme $ try qualified <|> scope
+  where scope     = ScopeName <$> identifier
+        qualified = do
+          lis <- sepBy1 identifier dot
+          if length lis == 1
+             then return $ ScopeName $ head lis
+          else let ini = init lis in
+                let fin = last lis in
+                 return $ QualifiedName ini fin
+

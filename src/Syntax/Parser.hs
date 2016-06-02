@@ -80,7 +80,7 @@ tuple :: Parser Expr
 tuple = parens $ ETuple <$> commaSep1 expression
 
 var :: Parser Expr
-var = EVar . ScopeName <$> identifier
+var = EVar <$> name
 
 if' :: Parser Expr
 if' = do reserved "if"
@@ -220,12 +220,12 @@ dynamicBinOp :: Parser (Expr -> Expr -> Expr)
 dynamicBinOp = infix' <|> op
   where infix' = lexeme $ do
                     char '`'
-                    x <- identifier
+                    x <- name
                     char '`'
-                    return $ EBinOp (EVar $ ScopeName x)
+                    return $ EBinOp $ EVar x
         op = lexeme $ do
           x <- operator
-          return $ EBinOp (EVar $ ScopeName x)
+          return $ EBinOp $ EVar $ QualifiedName ["Amulet"] x
 
 
 
@@ -299,8 +299,3 @@ typedef = tdalias
                      t2 <- atype
                      return $ TDAlias t1 t2
 
-
-typename = lexeme $ do
-  x <- upper
-  xs <- many letter
-  return $ ScopeName $ x:xs
