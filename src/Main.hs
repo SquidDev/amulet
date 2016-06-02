@@ -3,7 +3,7 @@ module Main (main) where
 import Syntax.Parser
 import Infer.Run
 import Infer
-import PrettyPrint
+import Pretty
 
 import System.IO
 import Control.Monad
