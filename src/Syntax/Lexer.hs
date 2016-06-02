@@ -112,20 +112,23 @@ contents p = do
   return r
 
 
-checkType :: String -> Name -> Parser Name
-checkType xs rv = if valid then return rv else fail "the name of a type must start with uppercase"
-  where valid = head xs `elem` ['A'..'Z']
-
-typename = lexeme $ do
-  x <- name
-  case x of
-    ScopeName x' -> checkType x' x
-    QualifiedName _ x' -> checkType x' x
+typename = lexeme qualified 
+  where qualified = do
+          lis <- sepBy1 typeword dot
+          if length lis == 1
+             then return $ ScopeName $ head lis
+          else
+            let ini = init lis in
+              let fin = last lis in
+                  return $ QualifiedName ini fin
+        typeword = lexeme $ do
+          x <- oneOf ['A'..'Z']
+          xs <- many letter
+          return $ x:xs
 
 name :: Parser Name
-name = lexeme $ try qualified <|> scope
-  where scope     = ScopeName <$> identifier
-        qualified = do
+name = lexeme $ try qualified
+  where qualified = do
           lis <- sepBy1 identifier dot
           if length lis == 1
              then return $ ScopeName $ head lis
