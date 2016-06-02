@@ -104,7 +104,7 @@ instance Pretty Type where
   pprint (TIdent n) = type' n
   pprint (TInst t t') = type' t <+> angles (typevar t')
   pprint (TFunc t@TFunc{} t') = do
-    parens $ type' . pprint $ t
+    parens $ pprint t
     tell " -> "
     pprint t'
 
@@ -120,10 +120,10 @@ instance Pretty Type where
                   "(" ++ intercalate ", " (map psh e) ++ ") " <+> " => "
 
 
-  pprint (TFunc t t') = type' t <+> " -> " <+> type' t'
+  pprint (TFunc t t') = t <+> " -> " <+> t'
   pprint (TTuple ts) = do
     x <- ask
-    parens $ intercalate " * " $ map ((`ppshow` x) . type') ts
+    parens $ intercalate " * " $ map (`ppshow` x) ts
 
 instance Pretty Literal where
   pprint (LString ls) = literal ls
@@ -209,8 +209,8 @@ instance Pretty Pattern where
 
 instance Pretty TypeError where
   pprint (UnificationFail t1 t2) = "Cannot unify " <+> t1 <+> " and " <+> t2
-  pprint (InfiniteType var ty) = "Infinite type for var " <+> TVar var <+> " under type " <+> ty
-  pprint (UnboundVariable var) = "Unbound variable " <+> var
+  pprint (InfiniteType var ty) = "Infinite type for type variable " <+> typevar (pprint $ '\'':var) <+> " under type " <+> ty
+  pprint (UnboundVariable var) = "Unbound variable " <+> pprint var
   pprint (Ambigious cons) = do
     env <- ask
     pprint "Ambiguous between "
