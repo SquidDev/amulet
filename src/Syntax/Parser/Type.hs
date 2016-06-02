@@ -21,7 +21,9 @@ afun = lexeme $ do reservedOp "->"
                    return TFunc
 
 atup = lexeme $ do reservedOp "*"
-                   return $ \x y -> TTuple [x, y]
+                   return $ \x y -> case x of
+                                      (TTuple xs) -> TTuple $ xs ++ [y]
+                                      _ -> TTuple [x, y]
 
 typevar = lexeme $ do
   char '\''
