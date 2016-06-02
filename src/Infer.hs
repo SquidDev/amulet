@@ -137,6 +137,7 @@ unifies t (TVar a) = bind a t
 -- I'm sorry for the repeated catchError: however I couldn't get it to type check
 -- when abstracted into another function.
 unifies t1@(TFunc l r) t2@(TFunc l' r') = unifyMany [l, r] [l', r'] `catchError` (throwError . TypeContext t1 t2)
+unifies t1@(TInst l r) t2@(TInst l' r') = unifyMany [l, r] [l', r'] `catchError` (throwError . TypeContext t1 t2)
 unifies t1@(TTuple a) t2@(TTuple b) = unifyMany a b `catchError` (throwError . TypeContext t1 t2)
 unifies (TForAll _ _ t1) t2 = unifies t1 t2  `catchError` (throwError . TypeContext t1 t2)
 unifies t1 (TForAll _ _ t2) = unifies t1 t2 `catchError` (throwError . TypeContext t1 t2)
