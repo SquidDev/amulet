@@ -28,7 +28,7 @@ languageDef = emptyDef
           ops = ["\\", "->", ","
                 , "()", "?>", "=", ":>"
                 , "<-", "&&", "||", "|"
-                , "=>"]
+                , "=>", "*"]
 
 lexer :: T.TokenParser ()
 lexer = T.makeTokenParser languageDef

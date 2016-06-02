@@ -8,12 +8,18 @@ import Text.Parsec.String (Parser)
 
 import qualified Text.Parsec.Expr as Ex
 
-param :: Parser (Ident, Maybe Type)
-param = do
-  nam <- identifier
-  t1  <- optionMaybe $ colon >> atype
+import qualified Debug.Trace as D
 
-  return (nam, t1)
+debug = flip D.trace
+
+param :: Parser (Ident, Maybe Type)
+param = untyped <|> typed
+  where untyped = identifier >>= \x -> return (x, Nothing)
+        typed = parens $ do
+          nam <- identifier
+          t1  <- optionMaybe $ colon >> atype
+
+          return (nam, t1)
 
 atype :: Parser Type
 atype =
@@ -43,12 +49,15 @@ atype =
                          Just x' -> TForAll v' x' t
                          Nothing -> TForAll v' [] t
 
-          atype' = parens atype <|> try tinst <|> typevar <|> typename
+          atype' = parens atype
+               <|> try tinst
+               <|> typevar
+               <|> typename
           constraints = single <|> many'
-          single = do x <- tinst
-                      reservedOp "=>"
-                      return [x]
-          many' = do
+          single = lexeme $ do x <- tinst
+                               reservedOp "=>"
+                               return [x]
+          many' = lexeme $ do
             x <- parens $ commaSep1 tinst
             reservedOp "=>"
             return x
@@ -172,9 +181,15 @@ declaration = build <$> commaSep1 dterm
         ddiscard = char '_' >> whiteSpace >> return DDiscard
         dname = DName <$> identifier
         dparens = parens dtuple
-        dterm = ddiscard <|> dname <|> dparens <?> "declaration"
+        dterm = ddiscard <|> dname <|> dparens <|> drecord <?> "declaration"
         -- We don't use declaration as we allow empty tuples here
         dtuple = build <$> commaSep dterm
+
+        drecord = braces $ semiSep1 record' >>= \x -> return $ DRecord x
+        record' = do x <- ScopeName <$> identifier
+                     reservedOp "="
+                     y <- declaration
+                     return (x, y)
 
         build :: [Declaration] -> Declaration
         build [] = DDiscard
@@ -313,3 +328,18 @@ function = do
   reserved "function"
   ps <- many1 matcharm
   return $ ELambda "x" Nothing $ EMatch ps (EVar $ ScopeName "x")
+
+
+typedef :: Parser TypeDef
+typedef = tdalias
+  where tdalias = do reserved "type"
+                     t1 <- typename
+                     reserved "="
+                     t2 <- atype
+                     return $ TDAlias t1 t2
+
+
+typename = lexeme $ do
+  x <- upper
+  xs <- many letter
+  return $ ScopeName $ x:xs
