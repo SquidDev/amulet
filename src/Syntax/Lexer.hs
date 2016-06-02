@@ -24,7 +24,7 @@ languageDef = emptyDef
   , T.caseSensitive   = True
   , T.reservedOpNames = ops }
     where names = [ "true", "false", "function"
-                  , "if", "then", "else", "forall"   
+                  , "if", "then", "else", "forall"
                   , "and", "let", "rec", "and", "or", "when"
                   , "mut", "in", "match", "with" ]
           ops = ["\\", "->", ","

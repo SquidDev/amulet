@@ -38,7 +38,7 @@ data TypeDef
   -- | A record structure
   | TDRecord [RecordRow]
   -- | An alias for another type
-  | TDAlias Name Type 
+  | TDAlias Name Type
   deriving (Show, Eq, Ord)
 
 -- | A single row of a record
