@@ -64,7 +64,7 @@ delim (s, e) y = do
   tell s
   ret <- pprint y
   tell e
-  return ret 
+  return ret
 
 between :: (Pretty a, Pretty b, Pretty c) => a -> b -> c -> PrettyPrinter
 between a b c = pprint a >> pprint c >> pprint b
@@ -106,7 +106,7 @@ instance Pretty Type where
   pprint (TIdent n) = type' n
   pprint (TInst t t') = type' t <+> angles (typevar t')
   pprint (TFunc t@TFunc{} t') = do
-    parens $ pprint t 
+    parens $ pprint t
     tell " -> "
     pprint t'
 
@@ -174,19 +174,19 @@ instance Pretty Expr where
 
   pprint (EApply e v) = e <+> " " <+> v
   pprint (EBinOp o l r) = l <+> " " <+> o <+> " " <+> r
-  pprint (ELambda n (Just t) b) = "\\" <+> parens (n <+> ": " <+> t) <+> " -> " <+> b 
+  pprint (ELambda n (Just t) b) = "\\" <+> parens (n <+> ": " <+> t) <+> " -> " <+> b
   pprint (ELambda e Nothing b) = "\\" <+> e <+> " -> " <+> b
   pprint (EUpcast e t) = e <+> " :> " <+> t
   pprint (EDowncast e t) = e <+> " ?> " <+> t
   pprint (ELet True vs e) = do x <- ask
                                pprint "let rec "
                                pprint $ intercalate (keyword "and" `ppshow` x) $ map (`ppshow` x) vs
-                               keyword " in " 
+                               keyword " in "
                                pprint e
   pprint (ELet False vs e) = do x <- ask
                                 pprint "let "
                                 pprint $ intercalate (keyword "and" `ppshow` x) $ map (`ppshow` x) vs
-                                keyword " in " 
+                                keyword " in "
                                 pprint e
   pprint (EList es) = ask >>= \x -> squares $ intercalate "; " $ map (`ppshow` x) es
   pprint (EAssign a e c) = a <+> " <- " <+> e <+> " in " <+> c
@@ -211,8 +211,8 @@ instance Pretty Pattern where
 
 instance Pretty TypeError where
   pprint (UnificationFail t1 t2) = "Cannot unify " <+> t1 <+> " and " <+> t2
-  pprint (InfiniteType var ty) = "Infinite type for var " <+> var <+> " under type " <+> ty
-  pprint (UnboundVariable var) = "Unbound variable " <+> var
+  pprint (InfiniteType var ty) = "Infinite type for type variable " <+> typevar (pprint $ '\'':var) <+> " under type " <+> ty
+  pprint (UnboundVariable var) = "Unbound variable " <+> pprint var
   pprint (Ambigious cons) = do
     env <- ask
     pprint "Ambiguous between "
@@ -220,9 +220,9 @@ instance Pretty TypeError where
       where pcons (l, r) = l <+> " <:> " <+> r
 
   pprint (UnificationMismatch t1 t2) = "Varying lengths for " <+> m t1 <+> " and " <+> m t2
-    where m ts = do env <- ask      
+    where m ts = do env <- ask
                     parens $ intercalate ", " $ map (`ppshow` env) ts
-      
+
 ppshow :: Pretty a => a -> PParam -> String
 ppshow = runPrinter . pprint
 
@@ -231,4 +231,4 @@ a <+> b = pprint a >> pprint b
 infixl 3 <+>
 
 pshow :: Pretty a => a -> String
-pshow = (`runPrinter` defaults) . pprint 
+pshow = (`runPrinter` defaults) . pprint
