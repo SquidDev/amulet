@@ -1,37 +1,78 @@
-module Test (tests) where
+module Test
+  (
+    Result(..),
+    Test(..),
+    TestRun, runTests
+  ) where
 
-import Syntax.Tree
-import Infer
-import Infer.Run
-import Distribution.TestSuite
-import PrettyPrint
+import Control.Monad.State
+import Text.Printf
+import System.Exit
 
-mismatch :: Pretty a => Pretty b => a -> b -> Result
-mismatch a b = Fail $ "Expected " ++ pshow a ++ "\n     got " ++ pshow b
+-- | The result of a test
+data Result
+   -- | A passed test
+   = Pass
+   -- | A failed test
+   | Fail String
+   -- | An error occured
+   | Error String
 
-checkInfer :: (Expr, Maybe Type) -> TestInstance
-checkInfer (expr, ty) = test
-  where result = case (ty, inferExpr nullEnv expr) of
-          (Just exp, Left got) -> mismatch exp got
-          (Nothing,  Right  got) -> mismatch "<nothing>" got
+type TestRun = IO Result
 
-          (Nothing,  Left _)   -> Pass
-          (Just exp, Right got)  -> if exp == got then Pass else mismatch exp got
-        test = TestInstance {
-          run = return $ Finished $ result,
-          name = "Infer " ++ show expr,
-          tags = ["infer", "type"], options = [], setOption = \_ _ -> Right test
-          }
+-- | The test to be run
+data Test
+  = Test String TestRun
+  | Group String [Test]
 
-evar :: Ident -> Expr
-evar = EVar . ScopeName
+data TestState = TestState { results :: [(String, Result)], passCount :: Int, failCount :: Int, errorCount :: Int }
 
-forAll :: TypeVar -> Type -> Type
-forAll name ty = TForAll { var = name, cons = [], td = ty }
+initState :: TestState
+initState = TestState [] 0 0 0
 
-types :: [(Expr, Maybe Type)]
-types = [
-  (ELambda "x" Nothing $ evar "x", Just $ forAll "a" $ TFunc (TVar "a") (TVar "a"))
-        ]
-tests :: IO [Test]
-tests = return $ map (Test . checkInfer) types
+runTest :: Test -> StateT TestState IO ()
+runTest (Test name runner) = do
+  result <- liftIO runner
+  state <- get
+  liftIO $ putStr $ resultDecoration result
+  put $ increment result (state { results = (name, result) : results state })
+  where
+    resultDecoration Pass = colour "●" 2
+    resultDecoration (Fail _) = colour "◼" 1
+    resultDecoration (Error _) = colour "✱" 5
+
+    increment Pass state = state { passCount = passCount state + 1 }
+    increment (Fail _) state = state { failCount = failCount state + 1 }
+    increment (Error _) state = state { errorCount = errorCount state + 1 }
+
+runTest (Group name tests) = mapM_ (runTest . prefix name) tests
+  where prefix pre (Test name runner) = Test (pre ++ " " ++ name) runner
+        prefix pre (Group name tests) = Group (pre ++ " " ++ name) tests
+
+printTests :: [(String, Result)] -> Bool -> IO ()
+printTests ([]) _ = return ()
+printTests ((_, Pass):remaining) False = printTests remaining False
+printTests ((name, result):remaining) all = do
+  let (str, msg) = extractResult result
+  putStrLn $ str ++ " " ++ name
+
+  case msg of
+    Just msg -> putStrLn msg
+    Nothing -> return ()
+  printTests remaining all
+  where
+    extractResult Pass = (colour "→ " 2, Nothing)
+    extractResult (Fail msg) = (colour "→ " 1, Just msg)
+    extractResult (Error msg) = (colour "→ " 5, Just msg)
+
+colour :: String -> Integer -> String
+colour a n = clr ++ a ++ "\x1b[0m"
+  where clr = "\x1b[1;3" ++ show n ++ "m"
+
+runTests :: [Test] -> IO ()
+runTests tests = do
+  TestState result pass fail error <- execStateT (mapM_ runTest tests) initState
+  putStrLn ""
+  printTests (reverse result) False
+  putStrLn $ printf "Ran %d: Passed %d, Failed: %d, Errored: %d" (pass + fail + error) pass fail error
+  if fail > 0 || error > 0 then exitFailure else exitSuccess

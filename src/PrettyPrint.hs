@@ -32,7 +32,7 @@ instance Pretty String where
 
 instance Pretty Name where
   pprint (ScopeName x) = pprint x
-  pprint (QualifiedName xs x) = pprint $ intercalate "." xs ++ "." ++ x
+  pprint (QualifiedName xs x) = pprint $ intercalate "." xs <+> "." <+> x
 
 instance Pretty AccessLevel where
   pprint Public   = keyword "public"
@@ -43,7 +43,7 @@ instance Pretty Type where
   pprint (TVar tv)  = typevar $ '\'':tv
   pprint (TIdent n) = type' n
   pprint (TInst t t') = type' t <+> "<" <+> type' t' <+> ">"
-  pprint (TFunc t t') = type' t <+> " -> " <+> type' t
+  pprint (TFunc t t') = type' t <+> " -> " <+> type' t'
   pprint (TTuple ts)  = parens $ intercalate ", " (map (pshow . type') ts)
   pprint (TForAll tv tc td) = keyword "forall " <+> '\'':tv <+> ". " <+> constraints tc <+> " => " <+> td
     where constraints [] = ""
@@ -62,7 +62,7 @@ instance Pretty Declaration where
   pprint DDiscard = pprint "_"
   pprint (DTuple ds) = parens $ intercalate ", " $ map pshow ds
   pprint (DRecord ts) = braces $ intercalate "; " $ map show' ts
-    where show' (x, y) = render $ x <+> " = " <+> y 
+    where show' (x, y) = render $ x <+> " = " <+> y
 
 instance Pretty Assignable where
   pprint (AName i) = pprint i
