@@ -86,8 +86,9 @@ instance Substitutable TypeEnv where
 
 tyVars :: Type -> Set.Set TypeVar
 tyVars (TVar _) = Set.empty
+tyVars (TInst _ _) = Set.empty
 tyVars (TIdent _) = Set.empty
-tyVars TForAll { var = var, cons = _, td = ty} = Set.insert var $ tyVars ty
+tyVars (TForAll var _ ty) = Set.insert var $ tyVars ty
 tyVars (TFunc a r) = tyVars a `Set.union` tyVars r
 tyVars (TTuple items) = Set.unions $ map tyVars items
 

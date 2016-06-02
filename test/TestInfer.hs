@@ -28,9 +28,10 @@ types = map build [
   ("\\x -> x", Just $ forAll "a" $ TFunc (TVar "a") (TVar "a")),
   ("let f = \\x -> x in f 2", Just  typeNum),
   ("\\x y -> (x, y)", Just $ forAll "b" $ forAll "a" $ TFunc (TVar "a") $ TFunc (TVar "b") $ TTuple [ TVar "a", TVar "b" ])
+  -- ("\\(x : ['a]) -> x", Just $ forAll "a" $ TFunc (TInst typeList $ TVar "a") (TInst typeList $ TVar "a"))
   ] where build (expr, ty) = (expr, extract $ parseExpr expr, ty)
           extract (Left _) = undefined
           extract (Right x) = x
 
 inferTests :: Test
-inferTests = Group "Infer" $ map (checkInfer) types
+inferTests = Group "Infer" $ map checkInfer types

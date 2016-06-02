@@ -50,7 +50,7 @@ runTest (Group name tests) = mapM_ (runTest . prefix name) tests
         prefix pre (Group name tests) = Group (pre ++ " " ++ name) tests
 
 printTests :: [(String, Result)] -> Bool -> IO ()
-printTests ([]) _ = return ()
+printTests [] _ = return ()
 printTests ((_, Pass):remaining) False = printTests remaining False
 printTests ((name, result):remaining) all = do
   let (str, msg) = extractResult result
