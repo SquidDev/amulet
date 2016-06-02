@@ -7,11 +7,11 @@ module Builders
 
 import Test
 import Syntax.Tree
-import PrettyPrint
+import Pretty
 
 evar = EVar . ScopeName
-forAll name ty = TForAll { var = name, cons = [], td = ty }
-lambda var ty = ELambda var Nothing ty
+forAll name = TForAll name []
+lambda var = ELambda var Nothing
 
 lNum = ELiteral . LNumber
 lStr = ELiteral . LString
