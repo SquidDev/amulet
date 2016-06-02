@@ -106,7 +106,7 @@ instance Pretty Type where
   pprint (TIdent n) = type' n
   pprint (TInst t t') = type' t <+> angles (typevar t')
   pprint (TFunc t@TFunc{} t') = do
-    parens $ type' . pprint $ t 
+    parens $ pprint t 
     tell " -> "
     pprint t'
 
@@ -122,7 +122,7 @@ instance Pretty Type where
                   "(" ++ intercalate ", " (map psh e) ++ ") " <+> " => "
 
 
-  pprint (TFunc t t') = type' t <+> " -> " <+> type' t'
+  pprint (TFunc t t') = t <+> " -> " <+> t'
   pprint (TTuple ts) = do
     x <- ask
     parens $ intercalate " * " $ map ((`ppshow` x) . type') ts

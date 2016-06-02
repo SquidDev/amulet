@@ -14,7 +14,7 @@ atype =
 
 ep :: Parser Type
 ep = Ex.buildExpressionParser table atype'
-  where table = [[Ex.Infix afun Ex.AssocLeft]
+  where table = [[Ex.Infix afun Ex.AssocRight]
                 ,[Ex.Infix atup Ex.AssocLeft]]
 
 afun = lexeme $ do reservedOp "->"
@@ -48,7 +48,7 @@ forall' = lexeme $ do
                Just x' -> TForAll v' x' t
                Nothing -> TForAll v' [] t
 
-atype' = parens atype
+atype' = lexeme $ parens ep
      <|> try tinst
      <|> typevar
      <|> typename
