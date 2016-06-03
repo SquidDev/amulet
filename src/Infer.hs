@@ -13,7 +13,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 
 -- | Lookup for type names
-newtype TypeEnv = TypeEnv (Map.Map Name Type)
+newtype TypeEnv = TypeEnv (Map.Map Name Type) deriving (Show)
 
 -- | Inference moand
 type Infer a = (RWST TypeEnv [Constraint] InferState (Except TypeError) a)
@@ -171,11 +171,11 @@ uni :: Expr -> Type -> Type -> Infer ()
 uni e t1 t2 = tell [(t1, t2, e)]
 
 -- | Extend type environment
-inEnv :: Name -> Type -> Infer a -> Infer a
-inEnv name ty m = do
-  -- Can just use Map.insert but implicit is better than explicit or something...
-  let scope (TypeEnv s) = TypeEnv $ Map.insert name ty $ Map.delete name s
-  local scope m
+inEnv :: TypeEnv -> Infer a -> Infer a
+inEnv env = local (envUnion env)
+
+envUnion :: TypeEnv -> TypeEnv -> TypeEnv
+envUnion (TypeEnv new) (TypeEnv original) = TypeEnv $ Map.union new original
 
 solver :: Unifier -> Solve Subst
 solver (su, cs) =

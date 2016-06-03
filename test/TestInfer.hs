@@ -29,10 +29,17 @@ types = map build [
   ("let f = \\x -> x in f 2", Just  typeNum),
   ("\\x y -> (x, y)", Just $ forAll "b" $ forAll "a" $ TFunc (TVar "a") $ TFunc (TVar "b") $ TTuple [ TVar "a", TVar "b" ]),
   ("\\(x : ['a]) -> x", Just $ forAll "a" $ TFunc (TInst typeList $ TVar "a") (TInst typeList $ TVar "a")),
-  ("\\(x: ['a] -> 'a) -> x [1; 2; 3]", Just $ TFunc (TFunc (TInst typeList typeNum) typeNum) typeNum)
-  ] where build (expr, ty) = (expr, extract $ parseExpr expr, ty)
-          extract (Left _) = undefined
-          extract (Right x) = x
+  ("\\(x: ['a] -> 'a) -> x [1; 2; 3]", Just $ TFunc (TFunc (TInst typeList typeNum) typeNum) typeNum),
+  ("let x = x in x", Nothing),
+  ("let rec x = x in x", Just $ forAll "a" $ TVar "a"),
+  ("let (a, b) = (true, 1) in (b, a)", Just $ TTuple [ typeNum, typeBool ]),
+  ("let rec f = \\x y -> if x then [y] else f false y in f", Just $ forAll "c" $ TFunc typeBool $ TFunc (TVar "c") $ TInst typeList $ TVar "c"),
+  ("let rec f = \\x y -> if x then [y] else f false 1 in f", Just $ TFunc typeBool $ TFunc typeNum $ TInst typeList typeNum),
+  ("\\x -> x x", Nothing),
+  ("let rec f = \\x -> f in f", Nothing)
+  ] where build (expr, ty) = (expr, extract expr $ parseExpr expr, ty)
+          extract expr (Left err) = error $ (expr ++ " => " ++ show err)
+          extract _ (Right x) = x
 
 inferTests :: Test
 inferTests = Group "Infer" $ map checkInfer types
