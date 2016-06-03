@@ -7,6 +7,9 @@ module Test
 
 import Control.Monad.State
 import Text.Printf
+
+import System.CPUTime
+import System.Environment
 import System.Exit
 
 -- | The result of a test
@@ -71,8 +74,13 @@ colour a n = clr ++ a ++ "\x1b[0m"
 
 runTests :: [Test] -> IO ()
 runTests tests = do
+  args <- getArgs
+  startTime <- getCPUTime
   TestState result pass fail error <- execStateT (mapM_ runTest tests) initState
+  endTime <- getCPUTime
+  let diffTime = fromIntegral (endTime - startTime) / (10^12)
   putStrLn ""
-  printTests (reverse result) False
-  putStrLn $ printf "Ran %d: Passed %d, Failed: %d, Errored: %d" (pass + fail + error) pass fail error
+  printTests (reverse result) (elem "--passsed" args || elem "-p" args)
+  putStrLn $ printf "Ran %d tests in %0.3f seconds" (pass + fail + error) (diffTime :: Double)
+  putStrLn $ printf "Passed: %d, Failed: %d, Errored: %d" pass fail error
   if fail > 0 || error > 0 then exitFailure else exitSuccess
