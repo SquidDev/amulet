@@ -26,7 +26,9 @@ languageDef = emptyDef
     where names = [ "true", "false", "function"
                   , "if", "then", "else", "forall"
                   , "and", "let", "rec", "and", "or", "when"
-                  , "mut", "in", "match", "with" ]
+                  , "mut", "in", "match", "with"
+                  , "open", "public", "private", "type"
+                  , "module", "as" ]
           ops = ["\\", "->", ","
                 , "()", "?>", "=", ":>"
                 , "<-", "&&", "||", "|"

@@ -38,7 +38,7 @@ data TypeDef
   -- | A record structure
   | TDRecord [RecordRow]
   -- | An alias for another type
-  | TDAlias Name Type
+  | TDAlias Type
   deriving (Show, Eq, Ord)
 
 -- | A single row of a record
@@ -145,7 +145,7 @@ data Import
   deriving (Show, Eq)
 
 data Statement
-  = SModule String AccessLevel [Import] [Statement]
+  = SModule Name AccessLevel [Import] [Statement]
   | STypeDef [(Ident, TypeDef)]
   | SExpr Expr
   deriving (Show, Eq)

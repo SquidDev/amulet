@@ -10,6 +10,7 @@ import qualified Text.Parsec.Expr as Ex
 
 import qualified Debug.Trace as D
 import Syntax.Parser.Type
+import Syntax.Parser.Top
 
 debug = flip D.trace
 
@@ -291,11 +292,23 @@ function = do
   return $ ELambda "x" Nothing $ EMatch ps (EVar $ ScopeName "x")
 
 
-typedef :: Parser TypeDef
-typedef = tdalias
-  where tdalias = do reserved "type"
-                     t1 <- typename
-                     reserved "="
-                     t2 <- atype
-                     return $ TDAlias t1 t2
+statement :: Parser Statement
+statement = module'
+        <|> STypeDef <$> typedefst
+        <|> SExpr    <$> expression
 
+module' :: Parser Statement
+module' = optionMaybe accessL >>= \x -> moduleP x
+  where moduleP al = do
+                    reserved "module"
+                    x <- typename
+                    reservedOp "="
+                    im <- many import'
+                    st <- many statement
+                    let al' = case al of
+                          Just x -> x
+                          Nothing -> Public
+                    return $ SModule x al' im st
+
+parseSt :: String -> Either ParseError Statement
+parseSt = parse (contents statement) "<stdin>"

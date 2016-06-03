@@ -20,5 +20,5 @@ runInfer env m = runExcept $ evalRWST m env initInfer
 runSolve :: [Constraint] -> Either TypeError Subst
 runSolve cs = runIdentity $ runExceptT $ solver (nullSubst, cs)
 
-inferModule :: [String] -> TypeEnv -> Statement -> Either TypeError TypeEnv
-inferModule name env (SModule mod _ _ stmt) = foldM (inferModule $ name ++ [mod]) env stmt
+inferModule :: String -> TypeEnv -> Statement -> Either TypeError TypeEnv
+inferModule name env (SModule (ScopeName mod) _ _ stmt) = foldM (inferModule $ name ++ mod) env stmt

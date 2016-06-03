@@ -11,8 +11,10 @@ import Syntax.Tree
 import Data.List
 import Infer
 
+import Data.Traversable
+
 type PrettyPrinter = ReaderT PParam
-                      (Writer String ) ()
+                      (Writer String) ()
 
 data PParam
   = PParam { colours       :: Bool
@@ -177,12 +179,12 @@ instance Pretty Expr where
   pprint (EUpcast e t) = e <+> " :> " <+> t
   pprint (EDowncast e t) = e <+> " ?> " <+> t
   pprint (ELet True vs e) = do x <- ask
-                               pprint "let rec "
+                               keyword "let rec "
                                pprint $ intercalate (keyword " and " `ppshow` x) $ map (`ppshow` x) vs
                                keyword " in "
                                pprint e
   pprint (ELet False vs e) = do x <- ask
-                                pprint "let "
+                                keyword "let "
                                 pprint $ intercalate (keyword " and " `ppshow` x) $ map (`ppshow` x) vs
                                 keyword " in "
                                 pprint e
@@ -223,6 +225,66 @@ instance Pretty TypeError where
   pprint (TypeContext t1 t2 err) = err <+> "\n  when unifying " <+> t1 <+> " and " <+> t2
   pprint (ExprContext expr err)  = err <+> "\n in " <+> expr
 
+instance Pretty Statement where
+  pprint (SExpr e) = pprint e
+  pprint (STypeDef ((x, y):_)) = do
+    keyword "type "
+    type' x
+    pprint " = "
+    pprint y
+  pprint (SModule nm al ins sts) = do
+    keyword al
+    keyword " module "
+    pprint nm
+    pprint " =\n"
+    env <- ask
+
+    pprint $ intercalate "\n" $ map (`ppshow` env) ins
+    pprint $ intercalate "\n" $ map (`ppshow` env) sts
+
+instance Pretty Import where
+  pprint (IAll n) = do
+    keyword "open "
+    pprint n
+  pprint (INamed n a) = do
+    keyword "open "
+    pprint n
+    keyword " as "
+    pprint a
+  pprint (IPartial name xs) = do
+    env <- ask
+    keyword " open "
+    pprint name
+    keyword " with "
+    x <- forM xs $ \(x, y) -> do
+      return $ concat [x, (keyword " as " `ppshow` env), y `ppshow` env]
+
+    parens $ intercalate ", " $ map (`ppshow` env) x
+
+
+instance Pretty TypeDef where
+  pprint (TDAlias t) = pprint t
+  pprint (TDUnion xs) = do
+    env <- ask
+    x <- forM xs $ \(x, y) -> do
+      return $ concat [x, (keyword " of " `ppshow` env), y `ppshow` env] 
+    pprint $ intercalate " | " $ map (`ppshow` env) x 
+  pprint (TDRecord xs) = do
+    env <- ask
+    x <- forM xs $ \kw -> return $ kw `ppshow` env
+    braces $ intercalate "; " x
+
+
+instance Pretty RecordRow where
+  pprint (RecordRow k t False al) = do
+    pprint al
+    pprint " " 
+    between k t ": "
+  pprint (RecordRow k t True al)  = do
+    keyword "mut "
+    pprint (RecordRow k t False al)
+
+    
 ppshow :: Pretty a => a -> PParam -> String
 ppshow = runPrinter . pprint
 
