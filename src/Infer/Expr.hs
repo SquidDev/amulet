@@ -52,10 +52,10 @@ infer e@ELet { recursive = recur, vars = vars, expr = rest } = do
   -- Merge all bindings togther
   let varEnv = foldl envUnion nullEnv varEnvs
   -- When evaluated this will unify bindings and types
-  let exprs env = mapM_ (merge env) $ zip varTys (map lExpr vars)
+  let exprs env = mapM_ (merge env) $ zip varTys $ map lExpr vars
   if recur then
     -- Declare variables then unify bindings
-    inEnv varEnv (ask >>= exprs >> infer rest)
+    inEnv varEnv $ ask >>= exprs >> infer rest
   else do
     -- Unify bindings then declare variables
     ask >>= exprs
@@ -63,7 +63,7 @@ infer e@ELet { recursive = recur, vars = vars, expr = rest } = do
   where
     -- Infers a type and unifies it with an expression
     merge :: TypeEnv -> (Type, Expr) -> Infer ()
-    merge env (ty, expr) = fmap (generalize env) (infer expr) >>= uni e ty
+    merge env (ty, expr) = generalize env <$> infer expr >>= uni e ty
 
 
 infer e@(EIf cond tr fl) = do
