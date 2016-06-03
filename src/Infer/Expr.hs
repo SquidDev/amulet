@@ -47,24 +47,24 @@ infer e@(EApply e1 e2) = do
   return tret
 
 infer e@ELet { recursive = recur, vars = vars, expr = rest } = do
-  env <- ask
   -- Build a list of new types and bindings
   (varTys, varEnvs) <- mapAndUnzipM inferDeclr $ map lName vars
   -- Merge all bindings togther
   let varEnv = foldl envUnion nullEnv varEnvs
   -- When evaluated this will unify bindings and types
-  let exprs = mapM_ merge $ zip varTys (map lExpr vars)
-
+  let exprs env = mapM_ (merge env) $ zip varTys (map lExpr vars)
   if recur then
     -- Declare variables then unify bindings
-    inEnv varEnv (exprs >> infer rest)
+    inEnv varEnv (ask >>= exprs >> infer rest)
   else do
     -- Unify bindings then declare variables
-    exprs
+    ask >>= exprs
     inEnv varEnv $ infer rest
   where
     -- Infers a type and unifies it with an expression
-    merge (ty, expr) = infer expr >>= uni e ty
+    merge :: TypeEnv -> (Type, Expr) -> Infer ()
+    merge env (ty, expr) = fmap (generalize env) (infer expr) >>= uni e ty
+
 
 infer e@(EIf cond tr fl) = do
   tcond <- infer cond
