@@ -126,7 +126,7 @@ instance Pretty Type where
     parens $ intercalate " * " $ map (`ppshow` x) ts
 
 instance Pretty Literal where
-  pprint (LString ls) = literal ls
+  pprint (LString ls) = literal $ "\"" ++ ls ++ "\""
   pprint (LNumber d) = literal $ show d
   pprint (LBoolean True) = literal "true"
   pprint (LBoolean False) = literal "false"
@@ -178,12 +178,12 @@ instance Pretty Expr where
   pprint (EDowncast e t) = e <+> " ?> " <+> t
   pprint (ELet True vs e) = do x <- ask
                                pprint "let rec "
-                               pprint $ intercalate (keyword "and" `ppshow` x) $ map (`ppshow` x) vs
+                               pprint $ intercalate (keyword " and " `ppshow` x) $ map (`ppshow` x) vs
                                keyword " in "
                                pprint e
   pprint (ELet False vs e) = do x <- ask
                                 pprint "let "
-                                pprint $ intercalate (keyword "and" `ppshow` x) $ map (`ppshow` x) vs
+                                pprint $ intercalate (keyword " and " `ppshow` x) $ map (`ppshow` x) vs
                                 keyword " in "
                                 pprint e
   pprint (EList es) = ask >>= \x -> squares $ intercalate "; " $ map (`ppshow` x) es
