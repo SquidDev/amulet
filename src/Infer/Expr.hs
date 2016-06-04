@@ -43,7 +43,7 @@ infer e@(EApply e1 e2) = do
   tfun <- infer e1
   targ <- infer e2
   tret <- fresh
-  uni e tfun $ targ `TFunc` tret
+  uniE e tfun $ targ `TFunc` tret
   return tret
 
 infer e@ELet { recursive = recur, vars = vars, expr = rest } = do
@@ -63,20 +63,20 @@ infer e@ELet { recursive = recur, vars = vars, expr = rest } = do
   where
     -- Infers a type and unifies it with an expression
     merge :: TypeEnv -> (Type, Expr) -> Infer ()
-    merge env (ty, expr) = generalize env <$> infer expr >>= uni e ty
+    merge env (ty, expr) = generalize env <$> infer expr >>= uniE e ty
 
 
 infer e@(EIf cond tr fl) = do
   tcond <- infer cond
   ttr <- infer tr
   tfl <- infer fl
-  uni e tcond typeBool
-  uni e ttr tfl
+  uniE e tcond typeBool
+  uniE e ttr tfl
   return ttr
 
 infer e@(EUpcast expr ty) = do
   t1 <- infer expr
-  uni e t1 ty
+  uniE e t1 ty
   return ty
 
 infer (EDowncast expr ty) = do
@@ -91,7 +91,7 @@ infer e@(EList exprs) = do
     [] -> fresh
     [ty] -> return ty
     ty:tys -> do
-      mapM_ (uni e ty) tys
+      mapM_ (uniE e ty) tys
       return ty
   return $ TInst typeList ty
 
@@ -102,7 +102,7 @@ infer e@(EBinOp l op r) = do
 
   tret <- fresh
 
-  uni e top $ TFunc tl $ TFunc tr tret
+  uniE e top $ TFunc tl $ TFunc tr tret
   return tret
 
 infer e@(EMatch patterns expr) = do

@@ -165,7 +165,7 @@ instance Pretty Expr where
   pprint (EVar n) = pprint n
   pprint (EIndex e n) = e <+> "." <+> n
   pprint (EIf c t e) = do
-    keyword "if"
+    keyword "if "
     pprint c
     keyword " then "
     pprint t
@@ -223,7 +223,13 @@ instance Pretty TypeError where
     where m ts = do env <- ask
                     parens $ intercalate ", " $ map (`ppshow` env) ts
   pprint (TypeContext t1 t2 err) = err <+> "\n  when unifying " <+> t1 <+> " and " <+> t2
-  pprint (ExprContext expr err)  = err <+> "\n in " <+> expr
+  pprint (GenericContext expr err)  = err <+> "\n in " <+> expr
+
+instance Pretty Context where
+  pprint (CExpr x) = pprint x
+  pprint (CType x) = pprint x
+  pprint (CPattern x) = pprint x
+  pprint (CStatement x) = pprint x
 
 instance Pretty Statement where
   pprint (SExpr e) = pprint e

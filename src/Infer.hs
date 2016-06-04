@@ -26,7 +26,7 @@ data InferState = InferState { count :: Int } deriving (Show)
 initInfer :: InferState
 initInfer = InferState 0
 
-type Constraint = (Type, Type, Expr)
+type Constraint = (Type, Type, Context)
 
 type Unifier = (Subst, [Constraint])
 
@@ -43,7 +43,7 @@ data TypeError
   | UnboundVariable Name
   | Ambigious [Constraint]
   | UnificationMismatch [Type] [Type]
-  | ExprContext Expr TypeError
+  | GenericContext Context TypeError
   | TypeContext Type Type TypeError
   deriving (Show)
 
@@ -167,9 +167,11 @@ generalize env t =
   foldl (\ty name -> TForAll { var = name, cons = [], td = ty }) t items
 
 -- | Unify two types
-uni :: Expr -> Type -> Type -> Infer ()
+uni :: Context -> Type -> Type -> Infer ()
 uni e t1 t2 = tell [(t1, t2, e)]
 
+uniE :: Expr -> Type -> Type -> Infer()
+uniE = uni . CExpr
 -- | Extend type environment
 inEnv :: TypeEnv -> Infer a -> Infer a
 inEnv env = local (envUnion env)
@@ -181,6 +183,6 @@ solver :: Unifier -> Solve Subst
 solver (su, cs) =
   case cs of
     [] -> return su
-    ((t1, t2, expr) : cs0) -> do
-        su1 <- unifies t1 t2 `catchError` (throwError . ExprContext expr)
+    ((t1, t2, ctx) : cs0) -> do
+        su1 <- unifies t1 t2 `catchError` (throwError . GenericContext ctx)
         solver (su1 `compose` su, apply su1 cs0)

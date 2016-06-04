@@ -149,3 +149,10 @@ data Statement
   | STypeDef [(Ident, TypeDef)]
   | SExpr Expr
   deriving (Show, Eq)
+
+data Context
+  = CExpr Expr
+  | CPattern Pattern
+  | CStatement Statement
+  | CType Type
+  deriving (Show, Eq)
