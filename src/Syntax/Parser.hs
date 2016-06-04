@@ -226,7 +226,7 @@ dynamicBinOp = infix' <|> op
                     return $ EBinOp $ EVar x
         op = lexeme $ do
           x <- operator
-          return $ EBinOp $ EVar $ QualifiedName ["Amulet"] x
+          return $ EBinOp $ EVar $ ScopeName x
 
 
 

@@ -105,6 +105,9 @@ infer e@(EBinOp l op r) = do
   uni e top $ TFunc tl $ TFunc tr tret
   return tret
 
+infer e@(EMatch patterns expr) = do
+  texpr <- infer expr
+  fresh
 -- | Gather the types of a declaration
 -- This doesn't unify types, but simply builds an environment from variable names
 inferDeclr :: Declaration -> Infer (Type, TypeEnv)
@@ -113,6 +116,5 @@ inferDeclr (DName name) = fresh >>= \var -> return (var, TypeEnv $ Map.singleton
 inferDeclr (DTuple items) = do
   fetched <- mapM inferDeclr items
   let tys = map fst fetched
-  let env = foldl union nullEnv (map snd fetched)
+  let env = foldl envUnion nullEnv (map snd fetched)
   return (TTuple tys, env)
-  where union (TypeEnv l) (TypeEnv r) = TypeEnv $ Map.union l r
