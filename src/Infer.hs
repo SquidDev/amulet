@@ -174,7 +174,7 @@ uniE :: Expr -> Type -> Type -> Infer()
 uniE = uni . CExpr
 -- | Extend type environment
 inEnv :: TypeEnv -> Infer a -> Infer a
-inEnv env = local (envUnion env)
+inEnv env = local $ envUnion env
 
 envUnion :: TypeEnv -> TypeEnv -> TypeEnv
 envUnion (TypeEnv new) (TypeEnv original) = TypeEnv $ Map.union new original

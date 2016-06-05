@@ -200,14 +200,15 @@ instance Pretty Expr where
                 pprint $ intercalate "\n" $ map psharm x
 
 instance Pretty Pattern where
-  pprint (PCapture i) = pprint i
+  pprint (PCapture n PWildcard) = pprint n
+  pprint (PCapture n p) = n <+> "@" <+> parens p
   pprint PWildcard = pprint "_"
   pprint (PLiteral l) = pprint l
   pprint (POr ps) = ask >>= \x -> pprint $ intercalate " | " $ map (`ppshow` x) ps
   pprint (PAnd ps) = ask >>= \x -> pprint $ intercalate " & " $ map (`ppshow` x) ps
   pprint (PTuple ps) = ask >>= \x -> parens $ intercalate ", " $ map (`ppshow` x) ps
   pprint (PList ps) = ask >>= \x -> squares $ intercalate "; " $ map (`ppshow` x) ps
-  pprint (PPattern n p) = n <+> "@" <+> parens p
+  pprint (PPattern n p) = n <+> p
 
 instance Pretty TypeError where
   pprint (UnificationFail t1 t2) = "Cannot unify " <+> t1 <+> " and " <+> t2

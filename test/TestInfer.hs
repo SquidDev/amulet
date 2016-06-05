@@ -36,7 +36,11 @@ types = map build [
   ("let rec f = \\x y -> if x then [y] else f false y in f", Just $ forAll "c" $ TFunc typeBool $ TFunc (TVar "c") $ TInst typeList $ TVar "c"),
   ("let rec f = \\x y -> if x then [y] else f false 1 in f", Just $ TFunc typeBool $ TFunc typeNum $ TInst typeList typeNum),
   ("\\x -> x x", Nothing),
-  ("let rec f = \\x -> f in f", Nothing)
+  ("let rec f = \\x -> f in f", Nothing),
+  ("match [1; 2; 3] with | [a; b] -> (a, b)", Just $ TTuple [ typeNum, typeNum ]),
+  ("match (1, 2) with | (a, _) -> a", Just typeNum),
+  ("match (1, 2) with | (false, a) -> a", Nothing),
+  ("match (1, true) with | x@(a, b) -> (x, a, b)", Just $ TTuple [ TTuple [ typeNum, typeBool ], typeNum, typeBool ])
   ] where build (expr, ty) = (expr, extract expr $ parseExpr expr, ty)
           extract expr (Left err) = error $ (expr ++ " => " ++ show err)
           extract _ (Right x) = x

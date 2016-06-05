@@ -248,15 +248,16 @@ matchp' = wildcard
       <|> capture
       <?> "match pattern"
   where wildcard = reservedOp "_" >> return PWildcard
-        capture  = PCapture <$> identifier
+        capture  = (`PCapture` PWildcard)  <$> identifier
         ptup     = PTuple <$> parens (commaSep1 matchp)
         plst     = PList <$> brackets (semiSep1 matchp)
         plit     = PLiteral <$> literal
         pbound = do
           x <- identifier
-          reservedOp "@"
-          p <- parens matchp
-          return $ PPattern (ScopeName x) p
+          cont <- optionMaybe $ reservedOp "@"
+          case cont of
+            Nothing -> return $ PCapture x PWildcard
+            Just _ -> PCapture x <$> matchp
 
 matchp :: Parser Pattern
 matchp = Ex.buildExpressionParser table matchp'

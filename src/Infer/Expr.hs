@@ -8,6 +8,7 @@ import Infer
 import Control.Monad.RWS
 
 import qualified Data.Map as Map
+import Debug.Trace(trace)
 
 typeNum :: Type
 typeNum = TIdent $ QualifiedName ["Amulet"] "Num"
@@ -24,11 +25,21 @@ typeUnit = TIdent $ QualifiedName ["Amulet"] "Unit"
 typeList :: Type
 typeList = TIdent $ QualifiedName ["Amulet"] "List"
 
+inferLiteral :: Literal -> Type
+inferLiteral LUnit = typeUnit
+inferLiteral (LNumber _) = typeNum
+inferLiteral (LBoolean _) = typeBool
+inferLiteral (LString _) = typeStr
+
+inferList :: Context -> [Type] -> Infer Type
+inferList _ [] = fresh
+inferList _ [ty] = return ty
+inferList c (ty : tys) = do
+  mapM_ (uni c ty) tys
+  return ty
+
 infer :: Expr -> Infer Type
-infer (ELiteral (LNumber _)) = return typeNum
-infer (ELiteral (LBoolean _)) = return typeBool
-infer (ELiteral (LString _)) = return typeStr
-infer (ELiteral LUnit) = return typeUnit
+infer (ELiteral lit) = return $ inferLiteral lit
 
 infer (EVar x) = lookupEnv x
 
@@ -107,7 +118,20 @@ infer e@(EBinOp l op r) = do
 
 infer e@(EMatch patterns expr) = do
   texpr <- infer expr
-  fresh
+  let handle (ptrn, expr) = do
+        (ty, TypeEnv vars) <- inferPattern ptrn
+        uniE e texpr ty
+
+        env <- ask
+        inEnv (TypeEnv vars) $ infer expr
+  tys <- mapM handle patterns
+  case tys of
+    [] -> fresh
+    [single] -> return single
+    ty:tys -> do
+      mapM_ (uniE e ty) tys
+      return ty
+
 -- | Gather the types of a declaration
 -- This doesn't unify types, but simply builds an environment from variable names
 inferDeclr :: Declaration -> Infer (Type, TypeEnv)
@@ -116,5 +140,39 @@ inferDeclr (DName name) = fresh >>= \var -> return (var, TypeEnv $ Map.singleton
 inferDeclr (DTuple items) = do
   fetched <- mapM inferDeclr items
   let tys = map fst fetched
-  let env = foldl envUnion nullEnv (map snd fetched)
+  let env = foldl envUnion nullEnv $ map snd fetched
   return (TTuple tys, env)
+
+-- TODO: Pass context to parent node
+inferPattern :: Pattern -> Infer (Type, TypeEnv)
+inferPattern PWildcard = fresh >>= \var -> return (var, nullEnv)
+inferPattern (PCapture name ptrn) = do
+  (ty, TypeEnv env) <- inferPattern ptrn
+  return (ty, TypeEnv $ Map.insert (ScopeName name) ty env)
+inferPattern (PLiteral literal) = return (inferLiteral literal, nullEnv)
+inferPattern p@(POr ptrns) = do
+  fetched <- mapM inferPattern ptrns
+  ty <- inferList (CPattern p) $ map fst fetched
+  -- TODO: Check all maps are the same
+  let env = foldl envUnion nullEnv $ map snd fetched
+  return (ty, env)
+inferPattern p@(PAnd ptrns) = do
+  fetched <- mapM inferPattern ptrns
+  ty <- inferList (CPattern p) $ map fst fetched
+  let env = foldl envUnion nullEnv $ map snd fetched
+  return (ty, env)
+inferPattern (PTuple ptrns) = do
+  fetched <- mapM inferPattern ptrns
+  let env = foldl envUnion nullEnv $ map snd fetched
+  return (TTuple $ map fst fetched, env)
+inferPattern p@(PList ptrns) = do
+  fetched <- mapM inferPattern ptrns
+  ty <- inferList (CPattern p) $ map fst fetched
+  let env = foldl envUnion nullEnv $ map snd fetched
+  return (TInst typeList ty, env)
+inferPattern p@(PPattern name ptrn) = do
+  (result, env) <- inferPattern ptrn
+  matcher <- lookupEnv name
+  ty <- fresh
+  uni (CPattern p) matcher (ty `TFunc` result)
+  return (ty, env)

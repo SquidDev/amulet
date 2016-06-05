@@ -121,7 +121,7 @@ data Expr
 -- | A pattern in a pattern matching expression
 data Pattern
   -- | Capture a variable
-  = PCapture Ident
+  = PCapture Ident Pattern
   -- | Matches anything
   | PWildcard
   -- | A constant value
