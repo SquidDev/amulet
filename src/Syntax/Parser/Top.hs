@@ -4,7 +4,6 @@ import Syntax.Tree
 import Syntax.Lexer
 
 import Text.Parsec
-import Text.Parsec.String (Parser)
 
 import Infer.Expr
 

@@ -1,5 +1,7 @@
 module Syntax.Lexer where
 
+import Data.Functor.Identity
+
 import qualified Text.Parsec.Token as T
 import Text.ParserCombinators.Parsec.Language (emptyDef)
 
@@ -7,10 +9,23 @@ import Text.Parsec.Char
 import Text.Parsec.Combinator
 
 import Text.Parsec
-
-import Text.Parsec.String (Parser)
+import Text.Parsec.Prim
 
 import Syntax.Tree
+
+import qualified Text.Parsec.Expr as Ex
+
+type Parser = Parsec String ParserState
+type GenParser tok st = Parsec [tok] st
+
+data ParserState
+  = ParserState { fixiditySpecs :: [Fixidity] }
+
+newtype Fixidity
+  = Fixidity (String, Ex.Assoc, Integer)
+
+emptyState :: ParserState
+emptyState = ParserState []
 
 languageDef :: T.LanguageDef u
 languageDef = emptyDef
@@ -34,7 +49,7 @@ languageDef = emptyDef
                 , "<-", "&&", "||", "|"
                 , "=>", "*"]
 
-lexer :: T.TokenParser ()
+lexer :: T.GenTokenParser String ParserState Identity
 lexer = T.makeTokenParser languageDef
 
 lexeme :: Parser a -> Parser a

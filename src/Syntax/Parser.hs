@@ -1,16 +1,16 @@
 module Syntax.Parser where
 
+import Data.Functor.Identity
+
 import Syntax.Tree
 import Syntax.Lexer
-
-import Text.Parsec
-import Text.Parsec.String (Parser)
-
-import qualified Text.Parsec.Expr as Ex
 
 import qualified Debug.Trace as D
 import Syntax.Parser.Type
 import Syntax.Parser.Top
+
+import Text.Parsec
+import qualified Text.Parsec.Expr as Ex
 
 debug = flip D.trace
 
@@ -236,7 +236,7 @@ expression = do
   return $ foldl1 EApply t
 
 parseExpr :: String -> Either ParseError Expr
-parseExpr = parse (contents expression) "<stdin>"
+parseExpr = runParser (contents expression) emptyState "<stdin>" 
 
 
 matchp' :: Parser Pattern
@@ -311,4 +311,4 @@ module' = optionMaybe accessL >>= \x -> moduleP x
                     return $ SModule x al' im st
 
 parseSt :: String -> Either ParseError Statement
-parseSt = parse (contents statement) "<stdin>"
+parseSt = runParser (contents statement) emptyState "<stdin>"
