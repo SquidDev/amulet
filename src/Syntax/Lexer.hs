@@ -114,7 +114,7 @@ contents p = do
   return r
 
 
-typename = lexeme qualified 
+typename = lexeme qualified
   where qualified = do
           lis <- sepBy1 typeword dot
           if length lis == 1
@@ -137,4 +137,3 @@ name = lexeme $ try qualified
           else let ini = init lis in
                 let fin = last lis in
                  return $ QualifiedName ini fin
-

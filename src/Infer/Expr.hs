@@ -8,7 +8,6 @@ import Infer
 import Control.Monad.RWS
 
 import qualified Data.Map as Map
-import Debug.Trace(trace)
 
 typeNum :: Type
 typeNum = TIdent $ QualifiedName ["Amulet"] "Num"

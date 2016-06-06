@@ -11,8 +11,6 @@ import Syntax.Tree
 import Data.List
 import Infer
 
-import Data.Traversable
-
 type PrettyPrinter = ReaderT PParam
                       (Writer String) ()
 
@@ -263,8 +261,8 @@ instance Pretty Import where
     keyword " open "
     pprint name
     keyword " with "
-    x <- forM xs $ \(x, y) -> do
-      return $ concat [x, (keyword " as " `ppshow` env), y `ppshow` env]
+    x <- forM xs $ \(x, y) ->
+      return $ concat [x, keyword " as " `ppshow` env, y `ppshow` env]
 
     parens $ intercalate ", " $ map (`ppshow` env) x
 
@@ -273,9 +271,9 @@ instance Pretty TypeDef where
   pprint (TDAlias t) = pprint t
   pprint (TDUnion xs) = do
     env <- ask
-    x <- forM xs $ \(x, y) -> do
-      return $ concat [x, (keyword " of " `ppshow` env), y `ppshow` env] 
-    pprint $ intercalate " | " $ map (`ppshow` env) x 
+    x <- forM xs $ \(x, y) ->
+      return $ concat [x, keyword " of " `ppshow` env, y `ppshow` env]
+    pprint $ intercalate " | " $ map (`ppshow` env) x
   pprint (TDRecord xs) = do
     env <- ask
     x <- forM xs $ \kw -> return $ kw `ppshow` env
@@ -285,13 +283,13 @@ instance Pretty TypeDef where
 instance Pretty RecordRow where
   pprint (RecordRow k t False al) = do
     pprint al
-    pprint " " 
+    pprint " "
     between k t ": "
   pprint (RecordRow k t True al)  = do
     keyword "mut "
     pprint (RecordRow k t False al)
 
-    
+
 ppshow :: Pretty a => a -> PParam -> String
 ppshow = runPrinter . pprint
 

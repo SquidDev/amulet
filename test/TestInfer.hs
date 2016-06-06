@@ -42,7 +42,7 @@ types = map build [
   ("match (1, 2) with | (false, a) -> a", Nothing),
   ("match (1, true) with | x@(a, b) -> (x, a, b)", Just $ TTuple [ TTuple [ typeNum, typeBool ], typeNum, typeBool ])
   ] where build (expr, ty) = (expr, extract expr $ parseExpr expr, ty)
-          extract expr (Left err) = error $ (expr ++ " => " ++ show err)
+          extract expr (Left err) = error $ expr ++ " => " ++ show err
           extract _ (Right x) = x
 
 inferTests :: Test

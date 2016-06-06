@@ -14,7 +14,7 @@ import Syntax.Parser.Type
 
 
 import' :: Parser Import
-import' = try with 
+import' = try with
       <|> try as
       <|> named
 
@@ -40,7 +40,7 @@ with = do
     reserved "as"
     y <- identifier
     return (x, y)
-  
+
   return $ IPartial x y
 
 named :: Parser Import
@@ -63,15 +63,15 @@ union = TDUnion <$> sepBy1 union' (reservedOp "|")
   where union' = do x <- typename
                     reserved "of"
                     y <- atype
-                    
+
                     let x' = case x of
                                ScopeName n -> n
                                QualifiedName _ n -> n
-                    
+
                     return (x', y)
 
 record :: Parser TypeDef
-record = do 
+record = do
   x <- braces $ semiSep1 recordRow
   return $ TDRecord x
 
@@ -84,11 +84,11 @@ mut = do reserved "mut"
          (x, ty, y) <- shared
          return $ RecordRow x ty True y
 
-shared = do y <- optionMaybe accessL 
+shared = do y <- optionMaybe accessL
             x <- identifier
             colon
             ty <- atype
-            case y of 
+            case y of
               Just ac -> return (x, ty, ac)
               Nothing -> return (x, ty, Public)
 
@@ -106,5 +106,4 @@ typedefst = do
               QualifiedName _ n -> n
   reservedOp "="
   y <- typedef
-  return $ [(x', y)]
-
+  return [(x', y)]
