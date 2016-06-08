@@ -1,7 +1,7 @@
 name:                amulet
 version:             0.0.0.1
 synopsis:            A simple functional programming language.
-homepage:            https://gitlab.com/demhydraz/amulet
+homepage:            https://gitlab.com/squiddev/amulet
 license:             MIT
 license-file:        LICENSE
 author:              Matheus Magalhães de Alcantara
