@@ -3,9 +3,9 @@ module TestInfer (inferTests) where
 import Builders
 import Syntax.Parser
 import Syntax.Tree
-import Infer
-import Infer.Expr
-import Infer.Run
+import Analysis.Infer
+import Types.TypeVar
+import Types.BuiltIn
 import Test
 
 checkInfer :: (String, Expr, Maybe Type) -> Test

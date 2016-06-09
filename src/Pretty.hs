@@ -10,7 +10,7 @@ import Control.Monad.Writer
 import Syntax.Tree
 import Data.List
 import qualified Data.Map as Map
-import Infer
+import Types.Unify
 
 type PrettyPrinter = ReaderT PParam
                       (Writer String) ()
