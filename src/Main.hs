@@ -1,8 +1,8 @@
 module Main (main) where
 
 import Syntax.Parser
-import Infer.Run
-import Infer
+import Analysis.Infer
+import Types.TypeVar
 import Pretty
 
 import Control.Monad

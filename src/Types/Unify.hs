@@ -70,7 +70,6 @@ unifyMany (t1 : ts1) (t2 : ts2) = do
   return $ su1 `compose` su2
 unifyMany t1 t2 = throwError $ UnificationMismatch t1 t2
 
-
 -- | Unify two types
 uni :: Context -> Type -> Type -> Infer ()
 uni e t1 t2 = tell [(t1, t2, e)]
