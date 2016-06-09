@@ -6,8 +6,6 @@ import Syntax.Lexer
 import Text.Parsec
 import Text.Parsec.String (Parser)
 
-import Infer.Expr
-
 import qualified Text.Parsec.Expr as Ex
 
 import Syntax.Parser.Type

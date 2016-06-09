@@ -1,28 +1,16 @@
-module Infer.Expr (
-  infer,
-  typeNum, typeBool, typeStr, typeUnit, typeList
+module Analysis.Infer (
+  inferExpr,
 ) where
 
 import Syntax.Tree
-import Infer
+import Types.TypeVar
+import Types.Unify
+import Types.BuiltIn
+import Control.Monad.Except
 import Control.Monad.RWS
+import Control.Monad.Identity
 
 import qualified Data.Map as Map
-
-typeNum :: Type
-typeNum = TIdent $ QualifiedName ["Amulet"] "Num"
-
-typeBool :: Type
-typeBool = TIdent $ QualifiedName ["Amulet"] "Bool"
-
-typeStr :: Type
-typeStr = TIdent $ QualifiedName ["Amulet"] "Str"
-
-typeUnit :: Type
-typeUnit = TIdent $ QualifiedName ["Amulet"] "Unit"
-
-typeList :: Type
-typeList = TIdent $ QualifiedName ["Amulet"] "List"
 
 inferLiteral :: Literal -> Type
 inferLiteral LUnit = typeUnit
@@ -175,3 +163,18 @@ inferPattern p@(PPattern name ptrn) = do
   ty <- fresh
   uni (CPattern p) matcher (ty `TFunc` result)
   return (ty, env)
+
+inferExpr :: TypeEnv -> Expr -> Either TypeError Type
+inferExpr env ex = do
+  (ty, cs) <- runInfer env $ infer ex
+  subst <- runSolve cs
+  return $ generalize nullEnv $ apply subst ty
+
+runInfer :: TypeEnv -> Infer Type -> Either TypeError (Type, [Constraint])
+runInfer env m = runExcept $ evalRWST m env initInfer
+
+runSolve :: [Constraint] -> Either TypeError Subst
+runSolve cs = runIdentity $ runExceptT $ solver (nullSubst, cs)
+
+inferModule :: String -> TypeEnv -> Statement -> Either TypeError TypeEnv
+inferModule name env (SModule (ScopeName mod) _ _ stmt) = foldM (inferModule $ name ++ mod) env stmt
