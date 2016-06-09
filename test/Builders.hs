@@ -2,7 +2,7 @@ module Builders
   (
     evar, forAll, lambda,
     lNum, lStr,
-    mismatch
+    mismatch, assertEquals
   ) where
 
 import Test
@@ -18,3 +18,6 @@ lStr = ELiteral . LString
 
 mismatch :: Pretty a => Pretty b => a -> b -> Result
 mismatch expected got = Fail $ "Expected " ++ pshow expected ++ "\n     got " ++ pshow got
+
+assertEquals :: Eq a => Pretty a => a -> a -> Result
+assertEquals a b = if a == b then Pass else mismatch a b

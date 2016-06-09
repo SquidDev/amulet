@@ -9,6 +9,7 @@ import Control.Monad.Writer
 
 import Syntax.Tree
 import Data.List
+import qualified Data.Map as Map
 import Infer
 
 type PrettyPrinter = ReaderT PParam
@@ -90,8 +91,14 @@ instance Pretty String where pprint = tell
 
 instance Pretty PrettyPrinter where pprint = id
 
+instance (Pretty a, Pretty b) => Pretty (Map.Map a b) where
+  pprint mp = do
+    x <- ask
+    braces $ intercalate "," $ map (\(k, v) -> ppshow k x ++ " => " ++ ppshow v x) $ Map.assocs mp
+
 instance Pretty Name where
   pprint (ScopeName x) = pprint x
+  pprint (QualifiedName [] x) = pprint x
   pprint (QualifiedName xs x) = intercalate "." xs <+> "." <+> x
 
 instance Pretty AccessLevel where
