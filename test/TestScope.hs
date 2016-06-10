@@ -8,6 +8,7 @@ import Analysis.Scope
 import Pretty
 
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import Data.Maybe (fromJust)
 
 scope :: ModuleScope
@@ -34,15 +35,19 @@ testFindScope = Test "Find scope" $ return result
           Nothing -> mismatch "<Child scope>" "<Nothing>"
           Just x -> Pass
 
+name :: [Ident] -> Name
+name [] = error "Cannot have empty name"
+name items = QualifiedName (init items) $ last items
+
 testGatherScope :: Test
 testGatherScope = Test "Gather scope" $ return result
   where result =
-          let scp = gatherScope moduleVars scope in
-            let expected = Map.fromList [
-                  (QualifiedName [] "A", ELiteral $ LNumber 2),
-                  (QualifiedName [] "B", ELiteral $ LNumber 3),
-                  (QualifiedName ["Child"] "C", ELiteral $ LNumber 4),
-                  (QualifiedName ["Child", "Children"] "C", ELiteral $ LNumber 5)
+          let scp = gatherScope (Map.keysSet . moduleVars) scope in
+            let expected = Set.fromList [
+                  name ["A"],
+                  name ["B"],
+                  name ["Child", "C"],
+                  name ["Child", "Children", "C"]
                   ] in assertEquals expected scp
 
 scopeTests :: Test

@@ -9,8 +9,10 @@ import Control.Monad.Writer
 
 import Syntax.Tree
 import Data.List
-import qualified Data.Map as Map
 import Types.Unify
+
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 type PrettyPrinter = ReaderT PParam
                       (Writer String) ()
@@ -95,6 +97,11 @@ instance (Pretty a, Pretty b) => Pretty (Map.Map a b) where
   pprint mp = do
     x <- ask
     braces $ intercalate "," $ map (\(k, v) -> ppshow k x ++ " => " ++ ppshow v x) $ Map.assocs mp
+
+instance Pretty a => Pretty (Set.Set a) where
+  pprint s = do
+    x <- ask
+    braces $ intercalate "," $ map (`ppshow` x) $ Set.toList s
 
 instance Pretty Name where
   pprint (ScopeName x) = pprint x
