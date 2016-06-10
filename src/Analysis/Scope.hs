@@ -1,7 +1,7 @@
 module Analysis.Scope
   (
     ModuleScope, moduleVars, moduleTys, moduleChildren,
-    findScope, gatherScope, nullScope
+    findScope, gatherScope, nullModule
   ) where
 
 import Syntax.Tree
@@ -16,8 +16,8 @@ data ModuleScope = ModuleScope {
   moduleChildren :: Map.Map Ident ModuleScope
 }
 
-nullScope :: ModuleScope
-nullScope = ModuleScope Map.empty Map.empty Map.empty
+nullModule :: ModuleScope
+nullModule = ModuleScope Map.empty Map.empty Map.empty
 
 -- | Find a child module within a scope
 findScope :: [Ident] -> ModuleScope -> Maybe ModuleScope

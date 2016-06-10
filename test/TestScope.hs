@@ -12,16 +12,16 @@ import qualified Data.Set as Set
 import Data.Maybe (fromJust)
 
 scope :: ModuleScope
-scope = nullScope {
+scope = nullModule {
   moduleVars = Map.fromList [
       ("A", ELiteral $ LNumber 2),
       ("B", ELiteral $ LNumber 3)
       ],
-  moduleChildren = Map.singleton "Child" $ nullScope {
+  moduleChildren = Map.singleton "Child" $ nullModule {
       moduleVars = Map.fromList [
           ("C", ELiteral $ LNumber 4)
           ],
-        moduleChildren = Map.singleton "Children" $ nullScope {
+        moduleChildren = Map.singleton "Children" $ nullModule {
           moduleVars = Map.fromList [
               ("C", ELiteral $ LNumber 5)
               ]

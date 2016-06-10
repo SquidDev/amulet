@@ -13,7 +13,7 @@ typeBool :: Type
 typeBool = TIdent $ QualifiedName ["Amulet"] "Bool"
 
 typeStr :: Type
-typeStr = TIdent $ QualifiedName ["Amulet"] "Str"
+typeStr = TIdent $ QualifiedName ["Amulet"] "String"
 
 typeUnit :: Type
 typeUnit = TIdent $ QualifiedName ["Amulet"] "Unit"

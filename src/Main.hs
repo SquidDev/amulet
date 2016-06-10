@@ -1,15 +1,19 @@
 module Main (main) where
 
-import Syntax.Parser
 import Analysis.Infer
-import Types.TypeVar
+import Analysis.NameResolver
 import Pretty
+import Syntax.Parser
+import Types.TypeVar
 
 import Control.Monad
+import Data.List (intercalate)
 import Data.Maybe
+import Syntax.Tree
 import System.IO
 import Text.Parsec.Error
-import Syntax.Tree
+
+import qualified Data.Map as Map
 
 prompt :: String -> IO String
 prompt x = do
@@ -46,6 +50,22 @@ parse parser = readLine Nothing
           case parser $ text ++ "\n" of
             Right _ -> True -- Wat? Parsed with no new line but works with
             Left e -> any hasEOF $ errorMessages e
+
+basicScope :: Scope
+basicScope = (
+  TypeScope $ Map.fromList [
+      pair "Num",
+      pair "Bool",
+      pair "String",
+      pair "Unit",
+      pair "List"
+      ],
+  ExprScope $ Map.empty
+  )
+  where amu = QualifiedName ["Amulet"]
+        root = QualifiedName []
+        pair :: Ident -> (Name, Name)
+        pair x = (root x, amu x)
 main :: IO()
 main =
   let item = do
@@ -53,9 +73,12 @@ main =
         case expr of
           Right(SExpr x) -> do
             putStrLn $ pshow x
-            case inferExpr nullEnv x of
-              Left e -> putStrLn $ pshow e
-              Right x -> putStrLn $ pshow x
+            case runResolver basicScope $ resolveExpr x of
+              Left e -> putStrLn $ intercalate "\n" $ map (\(c, name) -> "Cannot find " ++ pshow name ++ "\n in " ++ pshow c) e
+              Right x ->
+                case inferExpr nullEnv x of
+                  Left e -> putStrLn $ pshow e
+                  Right x -> putStrLn $ pshow x
           Right(e@STypeDef{}) -> putStrLn $ pshow e
           Right(e@SModule{}) -> putStrLn $ pshow e
           Left e -> print e
