@@ -225,7 +225,6 @@ instance Pretty Pattern where
 instance Pretty TypeError where
   pprint (UnificationFail t1 t2) = "Cannot unify " <+> t1 <+> " and " <+> t2
   pprint (InfiniteType var ty) = "Infinite type for type variable " <+> typevar (pprint $ '\'':var) <+> " under type " <+> ty
-  pprint (UnboundVariable var) = "Unbound variable " <+> pprint var
   pprint (Ambigious cons) = do
     env <- ask
     pprint "Ambiguous between "

@@ -23,7 +23,6 @@ type Solve a = Except TypeError a
 data TypeError
   = UnificationFail Type Type
   | InfiniteType TypeVar Type
-  | UnboundVariable Name
   | Ambigious [Constraint]
   | UnificationMismatch [Type] [Type]
   | GenericContext Context TypeError
@@ -38,7 +37,7 @@ lookupEnv ::Name -> Infer Type
 lookupEnv x = do
   (TypeEnv env) <- ask
   case Map.lookup x env of
-    Nothing -> throwError $ UnboundVariable x
+    Nothing -> error $ "Cannot find variable " ++ show x ++ ". This is an amulet bug: it should have been caught though NamedVariables."
     Just s ->  instantiate s
 
 -- | Bind a type variable to a type

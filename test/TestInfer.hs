@@ -30,7 +30,6 @@ types = map build [
   ("\\x y -> (x, y)", Just $ forAll "b" $ forAll "a" $ TFunc (TVar "a") $ TFunc (TVar "b") $ TTuple [ TVar "a", TVar "b" ]),
   ("\\(x : ['a]) -> x", Just $ forAll "a" $ TFunc (TInst typeList $ TVar "a") (TInst typeList $ TVar "a")),
   ("\\(x: ['a] -> 'a) -> x [1; 2; 3]", Just $ TFunc (TFunc (TInst typeList typeNum) typeNum) typeNum),
-  ("let x = x in x", Nothing),
   ("let rec x = x in x", Just $ forAll "a" $ TVar "a"),
   ("let (a, b) = (true, 1) in (b, a)", Just $ TTuple [ typeNum, typeBool ]),
   ("let rec f = \\x y -> if x then [y] else f false y in f", Just $ forAll "c" $ TFunc typeBool $ TFunc (TVar "c") $ TInst typeList $ TVar "c"),
