@@ -8,6 +8,7 @@ import Control.Monad.Reader
 import Control.Monad.Writer
 
 import Syntax.Tree
+import Analysis.NameResolver (NameError(..))
 import Data.List
 import Types.Unify
 
@@ -244,7 +245,12 @@ instance Pretty Context where
   pprint (CStatement x) = pprint x
 
 instance Pretty Statement where
-  pprint (SExpr e) = pprint e
+  pprint (SLet recr bind) =
+    do x <- ask
+       keyword "let "
+       if recr then keyword "rec " else return ()
+       pprint $ intercalate (keyword " and " `ppshow` x) $ map (\(i, b) -> i ++ " = "  ++ ppshow b x) bind
+       keyword " in"
   pprint (STypeDef ((x, y):_)) = do
     keyword "type "
     type' x
@@ -261,18 +267,16 @@ instance Pretty Statement where
     pprint $ intercalate "\n" $ map (`ppshow` env) sts
 
 instance Pretty Import where
-  pprint (IAll n) = do
-    keyword "open "
-    pprint n
+  pprint (IAll n) = keyword "open " <+> intercalate "." n
   pprint (INamed n a) = do
     keyword "open "
-    pprint n
+    pprint $ intercalate "." n
     keyword " as "
     pprint a
   pprint (IPartial name xs) = do
     env <- ask
     keyword " open "
-    pprint name
+    pprint $ intercalate "." name
     keyword " with "
     x <- forM xs $ \(x, y) ->
       return $ concat [x, keyword " as " `ppshow` env, y `ppshow` env]
@@ -302,6 +306,10 @@ instance Pretty RecordRow where
     keyword "mut "
     pprint (RecordRow k t False al)
 
+instance Pretty NameError where
+  pprint (UnknownExpr name ctx) = "Unknown variable " <+> name <+> "\n in " <+> ctx
+  pprint (UnknownType name ctx) = "Unknown type " <+> name <+> "\n in " <+> ctx
+  pprint (UnknownModule name ctx) = "Unknown module " <+> (intercalate "." name) <+> "\n in " <+> ctx
 
 ppshow :: Pretty a => a -> PParam -> String
 ppshow = runPrinter . pprint

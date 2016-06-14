@@ -19,19 +19,17 @@ import' = try with
 as :: Parser Import
 as = do
   reserved "open"
-  x <- typename
+  x <- sepBy1 identifier dot
   reserved "as"
-  y <- typename
+  y <- identifier
 
 
-  return $ INamed x $ case y of
-    ScopeName nm -> nm
-    QualifiedName _ nm -> nm
+  return $ INamed x y
 
 with :: Parser Import
 with = do
   reserved "open"
-  x <- typename
+  x <- sepBy1 identifier dot
   reserved "with"
   y <- parens $ commaSep1 $ do
     x <- identifier
@@ -44,7 +42,7 @@ with = do
 named :: Parser Import
 named = do
   reserved "open"
-  x <- typename
+  x <- sepBy1 identifier dot
   return $ IAll x
 
 typedef :: Parser TypeDef
