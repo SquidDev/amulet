@@ -29,7 +29,7 @@ languageDef = emptyDef
                   , "mut", "in", "match", "with"
                   , "open", "public", "private", "type"
                   , "module", "as" ]
-          ops = ["\\", "->", ","
+          ops = ["\\", "->", ",", ";;"
                 , "()", "?>", "=", ":>"
                 , "<-", "&&", "||", "|"
                 , "=>", "*"]

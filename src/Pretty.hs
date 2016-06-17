@@ -254,7 +254,8 @@ instance Pretty Statement where
        keyword "let "
        if recr then keyword "rec " else return ()
        pprint $ intercalate (keyword " and " `ppshow` x) $ map (\(i, b) -> i ++ " = "  ++ ppshow b x) bind
-       keyword " in"
+       pprint " ;;"
+
   pprint (STypeDef ((x, y):_)) = do
     keyword "type "
     type' x

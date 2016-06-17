@@ -273,24 +273,26 @@ function = do
 
 
 letstmt :: Parser Statement
-letstmt = letrec <?> "let expression"
+letstmt = letrec <?> "let statement"
   where
     letrec = do
       reserved "let"
       recr <- isJust <$> optionMaybe (reserved "rec")
       binds <- sepBy1 letbind $ reserved "and"
-      reserved "in"
-
+      optionMaybe $ reservedOp ";;"
       return $ SLet recr binds
 
     letbind :: Parser (Ident, Expr)
     letbind =  letbindimpl <?> "let binding"
     letbindimpl = do
       nam <- identifier
+      args <- many identifier
       reservedOp "="
       e1 <- expression
 
-      return (nam, e1)
+      return (nam, foldr lam e1 args)
+  
+    lam ar bd = ELambda ar Nothing bd
 
 statement :: Parser Statement
 statement = module'
