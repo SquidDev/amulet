@@ -1,12 +1,13 @@
 module Analysis.NameResolver
   (
     runResolver, resolveExpr,
-    Scope, NameError, NameResolver, TypeScope(TypeScope), ExprScope(ExprScope),
+    Scope, NameError(..), NameResolver, TypeScope(TypeScope), ExprScope(ExprScope),
     nullTy, nullExpr, nullScope
   ) where
 
 import Syntax.Tree
 import Analysis.MonadScope
+import Analysis.Scope
 
 import Control.Monad.Writer
 import Control.Monad.State
@@ -16,7 +17,7 @@ import qualified Data.Set as Set
 
 newtype TypeScope = TypeScope (Map.Map Name Name)
 newtype ExprScope = ExprScope (Map.Map Name Name)
-type Scope = (TypeScope, ExprScope)
+type Scope = (TypeScope, ExprScope, ModuleScope)
 
 nullTy :: TypeScope
 nullTy = TypeScope Map.empty
@@ -25,14 +26,25 @@ nullExpr :: ExprScope
 nullExpr = ExprScope Map.empty
 
 nullScope :: Scope
-nullScope = (nullTy, nullExpr)
+nullScope = (nullTy, nullExpr, nullModule)
 
-type NameError = (Context, Name)
+data NameError
+  = UnknownExpr Name Context
+  | UnknownType Name Context
+  | UnknownModule [Ident] Context
+  deriving (Show)
+
 type NameResolver a = WriterT [NameError] (State Scope) a
 
 extendLocal :: Scope -> NameResolver a -> NameResolver a
-extendLocal (TypeScope t, ExprScope s) a =
-  let apply (TypeScope t', ExprScope s') = (TypeScope $ Map.union t t', ExprScope $ Map.union s s') in localScope apply a
+extendLocal (TypeScope t, ExprScope s, m) a =
+  let apply (TypeScope t', ExprScope s', m') = (TypeScope $ Map.union t t', ExprScope $ Map.union s s', mergeModule m m') in
+    localScope apply a
+
+extendGlobal :: Scope -> NameResolver ()
+extendGlobal (TypeScope t, ExprScope s, m) = do
+  ~(TypeScope t', ExprScope s', m') <- getScope
+  putScope (TypeScope $ Map.union t t', ExprScope $ Map.union s s', mergeModule m m')
 
 lookupVar :: Name -> Map.Map Name Name -> Maybe Name
 lookupVar name@(ScopeName ident) scp =
@@ -44,10 +56,10 @@ lookupVar name scp = Map.lookup name scp
 resolveType :: Type -> NameResolver Type
 resolveType t@(TVar _) = return t
 resolveType t@(TIdent name) = do
-  ~(TypeScope scp, _) <- getScope
+  ~(TypeScope scp, _, _) <- getScope
   case lookupVar name scp of
     Nothing -> do
-      tell [(CType t, name)]
+      tell [UnknownType name $ CType t]
       return t
     Just x -> return $ TIdent x
 resolveType (TInst a b) = TInst <$> resolveType a <*> resolveType b
@@ -59,10 +71,10 @@ resolveExpr :: Expr -> NameResolver Expr
 resolveExpr e@(ELiteral _) = return e
 resolveExpr (ETuple t) = ETuple <$> mapM resolveExpr t
 resolveExpr e@(EVar name) = do
-  ~(_, ExprScope scp) <- getScope
+  ~(_, ExprScope scp, _) <- getScope
   case lookupVar name scp of
     Nothing -> do
-      tell [(CExpr e, name)]
+      tell [UnknownExpr name $ CExpr e]
       return e
     Just x -> return $ EVar x
 resolveExpr (EIndex e name) = (`EIndex` name) <$> resolveExpr e
@@ -72,10 +84,10 @@ resolveExpr (EBinOp l op r) = EBinOp <$> resolveExpr l <*> resolveExpr op <*> re
 resolveExpr (EUpcast e ty) = EUpcast <$> resolveExpr e <*> resolveType ty
 resolveExpr (ELambda name ty e) =
   let name' = ScopeName name in
-  ELambda name ty <$> extendLocal (nullTy, ExprScope $ Map.singleton name' name') (resolveExpr e)
+  ELambda name ty <$> extendLocal (nullTy, ExprScope $ Map.singleton name' name', nullModule) (resolveExpr e)
 resolveExpr (ELet recur vars cont) = do
   let names = Set.map ScopeName $ Set.unions $ map (declarationVars . lName) vars
-  let scope = (nullTy, ExprScope $ Map.fromSet id names)
+  let scope = (nullTy, ExprScope $ Map.fromSet id names, nullModule)
   let resolveBinding (LetBinding n e m) = (\e' -> LetBinding n e' m) <$> resolveExpr e
   if recur then
     extendLocal scope (ELet recur <$> mapM resolveBinding vars <*> resolveExpr cont)
@@ -87,11 +99,12 @@ resolveExpr (EDowncast e ty) = EDowncast <$> resolveExpr e <*> resolveType ty
 resolveExpr (EAssign a v cont) = EAssign a <$> resolveExpr v <*> resolveExpr cont
 resolveExpr (EList e) = EList <$> mapM resolveExpr e
 resolveExpr (EMatch ptrns match) = do
+
   EMatch <$> mapM handleBranch ptrns <*> resolveExpr match
   where handleBranch :: (Pattern, Expr) -> NameResolver (Pattern, Expr)
         handleBranch (ptrn, expr) = do
           (scp, ptrn') <- resolvePattern ptrn
-          let scp' = (nullTy, ExprScope $ Map.fromSet id $ Set.map ScopeName scp)
+          let scp' = (nullTy, ExprScope $ Map.fromSet id $ Set.map ScopeName scp, nullModule)
           expr' <- extendLocal scp' $ resolveExpr expr
           return (ptrn', expr')
 
@@ -123,14 +136,77 @@ resolvePattern (PList ptrns) = do
   (scps, ptrns') <- unzip <$> mapM resolvePattern ptrns
   return (Set.unions scps, POr ptrns')
 resolvePattern p@(PPattern name ptrn) = do
-  ~(_, ExprScope scp) <- getScope
+  ~(_, ExprScope scp, _) <- getScope
   name' <- case lookupVar name scp of
     Nothing -> do
-      tell [(CPattern p, name)]
+      tell [UnknownExpr name $ CPattern p]
       return name
     Just x -> return x
   (scp', ptrn') <- resolvePattern ptrn
   return (scp', PPattern name' ptrn')
+
+buildImport :: (Set.Set Name -> Map.Map Name Name) -> Import -> [Ident] -> NameResolver ()
+buildImport handle i path = do
+  ~(TypeScope varScp, ExprScope tyScp, scp) <- getScope
+  case findScope path scp of
+    Nothing -> do
+      tell [UnknownModule path $ CImport i]
+      return ()
+    Just modu -> do
+      let vars = handle $ gatherScope (Map.keysSet . moduleVars) modu
+      let tys = handle $ gatherScope (Map.keysSet . moduleTys) modu
+      putScope (TypeScope $ Map.union tys tyScp, ExprScope $ Map.union vars varScp, scp)
+      return ()
+
+handleImport :: Import -> NameResolver ()
+handleImport i@(IAll path) = buildImport handle i path
+  where qualName :: Name -> Name
+        qualName (QualifiedName modu name) = QualifiedName (path ++ modu) name
+        handle = Map.fromSet qualName
+
+handleImport i@(INamed path prefix) = buildImport handle i path
+  where qualName :: Name -> Name
+        qualName (QualifiedName modu name) = QualifiedName (path ++ modu) name
+        preName :: Name -> Name
+        preName (QualifiedName modu name) = QualifiedName (prefix : modu) name
+        handle = Map.mapKeysMonotonic preName . Map.fromSet qualName
+
+handleImport i@(IPartial path renames) = do
+  ~(TypeScope varScp, ExprScope tyScp, scp) <- getScope
+  case findScope path scp of
+    Nothing -> do
+      tell [UnknownModule path $ CImport i]
+      return ()
+    Just modu -> do
+      vars <- handle UnknownExpr $ Map.keysSet $ moduleVars modu
+      tys <- handle UnknownType $ Map.keysSet $ moduleTys modu
+      putScope (TypeScope $ Map.union tys tyScp, ExprScope $ Map.union vars varScp, scp)
+      return ()
+  where qualName = QualifiedName path
+        rename :: (Name -> Context -> NameError) -> Map.Map Ident a -> (Ident, Ident) -> NameResolver (Map.Map Ident a)
+        rename err env (from, to) = case Map.lookup from env of
+                               Nothing -> do
+                                 tell [err (qualName from) $ CImport i]
+                                 return env
+                               Just x ->
+                                 return $ Map.insert to x $ Map.delete from env
+        handle :: (Name -> Context -> NameError) -> Set.Set Ident -> NameResolver (Map.Map Name Name)
+        handle err set = do
+          env <- foldM (rename err) (Map.fromSet qualName set) renames
+          return $ Map.mapKeysMonotonic qualName env
+
+resolveStatement :: Statement -> ModuleScope -> NameResolver Statement
+resolveStatement (SLet recur vars) scp = do
+  let names = Set.map ScopeName $ Set.fromList $ map fst vars
+  let scope = (nullTy, ExprScope $ Map.fromSet id names, nullModule)
+  let resolveBinding (n, e) = (\e' -> (n, e')) <$> resolveExpr e
+  if recur then do
+    extendGlobal scope
+    SLet recur <$> mapM resolveBinding vars
+  else do
+    stmt <- SLet recur <$> mapM resolveBinding vars
+    extendGlobal scope
+    return stmt
 
 runResolver :: Scope -> NameResolver a -> Either [NameError] a
 runResolver s a =

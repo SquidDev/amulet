@@ -6,6 +6,8 @@ import Syntax.Lexer
 import Text.Parsec
 import Text.Parsec.String (Parser)
 
+import Data.Maybe
+
 import qualified Text.Parsec.Expr as Ex
 
 import qualified Debug.Trace as D
@@ -91,51 +93,28 @@ if' = do reserved "if"
          else' <- option (ELiteral LUnit) (reserved "else" >> expression)
          return $ EIf cond then' else'
 
-letreg :: Parser Expr
-letreg = do
-  reserved "let"
-  binds <- sepBy1 letbind $ reserved "and"
-  reserved "in"
-  expr <- expression
-
-  return $ ELet False binds expr
-
-letrec :: Parser Expr
-letrec = do
-  reserved "let"
-  reserved "rec"
-  binds <- sepBy1 letbind $ reserved "and"
-  reserved "in"
-  expr <- expression
-
-  return $ ELet True binds expr
-
 let' :: Parser Expr
-let' = try letrec
-       <|> letreg
-       <?> "let expression"
+let' = letrec <?> "let expression"
+  where
+    letrec = do
+      reserved "let"
+      recr <- isJust <$> (optionMaybe $ reserved "rec")
+      binds <- sepBy1 letbind $ reserved "and"
+      reserved "in"
+      expr <- expression
 
-letbindimut :: Parser LetBinding
-letbindimut = do
-  nam <- declaration
-  reservedOp "="
-  e1 <- expression
-
-  return $ LetBinding nam e1 False
-
-letbindmut :: Parser LetBinding
-letbindmut = do
-  reserved "mut"
-  nam <- declaration
-  reservedOp "="
-  e1 <- expression
-
-  return $ LetBinding nam e1 False
+      return $ ELet recr binds expr
 
 letbind :: Parser LetBinding
-letbind = try letbindmut
-          <|> letbindimut
-          <?> "let binding"
+letbind =  letbindimut <?> "let binding"
+  where
+    letbindimut = do
+      mut <- isJust <$> (optionMaybe $ reserved "mut")
+      nam <- declaration
+      reservedOp "="
+      e1 <- expression
+
+      return $ LetBinding nam e1 mut
 
 declaration :: Parser Declaration
 declaration = build <$> commaSep1 dterm
@@ -293,10 +272,30 @@ function = do
   return $ ELambda "x" Nothing $ EMatch ps (EVar $ ScopeName "x")
 
 
+letstmt :: Parser Statement
+letstmt = letrec <?> "let expression"
+  where
+    letrec = do
+      reserved "let"
+      recr <- isJust <$> optionMaybe (reserved "rec")
+      binds <- sepBy1 letbind $ reserved "and"
+      reserved "in"
+
+      return $ SLet recr binds
+
+    letbind :: Parser (Ident, Expr)
+    letbind =  letbindimpl <?> "let binding"
+    letbindimpl = do
+      nam <- identifier
+      reservedOp "="
+      e1 <- expression
+
+      return (nam, e1)
+
 statement :: Parser Statement
 statement = module'
         <|> STypeDef <$> typedefst
-        <|> SExpr    <$> expression
+        <|> letstmt
 
 module' :: Parser Statement
 module' = optionMaybe accessL >>= \x -> moduleP x

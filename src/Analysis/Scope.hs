@@ -1,7 +1,7 @@
 module Analysis.Scope
   (
     ModuleScope, moduleVars, moduleTys, moduleChildren,
-    findScope, gatherScope, nullModule
+    findScope, gatherScope, nullModule, mergeModule,
   ) where
 
 import Syntax.Tree
@@ -33,3 +33,10 @@ gatherScope gather = gatherImpl []
           let moduName = reverse prefix in
           let items = Set.map (QualifiedName moduName) $ gather modu in
           Map.foldlWithKey (\exist k scp -> exist `Set.union` gatherImpl (k : prefix) scp) items $ moduleChildren modu
+
+mergeModule :: ModuleScope -> ModuleScope -> ModuleScope
+mergeModule left right = ModuleScope {
+  moduleVars = moduleVars left `Map.union` moduleVars right,
+  moduleTys = moduleTys left `Map.union` moduleTys right,
+  moduleChildren = Map.unionWithKey (const mergeModule) (moduleChildren left) (moduleChildren right)
+  }

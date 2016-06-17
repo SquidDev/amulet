@@ -2,6 +2,7 @@ module Main (main) where
 
 import Analysis.Infer
 import Analysis.NameResolver
+import Analysis.Scope
 import Pretty
 import Syntax.Parser
 import Types.TypeVar
@@ -62,7 +63,8 @@ basicScope = (
       pair "Unit",
       pair "List"
       ],
-  ExprScope $ Map.empty
+  ExprScope Map.empty,
+  nullModule
   )
   where amu = QualifiedName ["Amulet"]
         root = QualifiedName []
@@ -73,15 +75,6 @@ main =
   let item = do
         expr <- parse parseSt
         case expr of
-          Right(SExpr x) -> do
-            putStrLn $ pshow x
-            case runResolver basicScope $ resolveExpr x of
-              Left e -> putStrLn $ intercalate "\n" $ map (\(c, name) -> "Cannot find " ++ Pretty.name name ++ "\n while resolving " ++ Pretty.name c) e
-              Right x ->
-                case inferExpr nullEnv x of
-                  Left e -> putStrLn $ pshow e
-                  Right x -> putStrLn $ pshow x
-          Right(e@STypeDef{}) -> putStrLn $ pshow e
-          Right(e@SModule{}) -> putStrLn $ pshow e
+          Right e -> putStrLn $ pshow e
           Left e -> print e
   in forever item

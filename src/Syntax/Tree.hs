@@ -139,20 +139,21 @@ data Pattern
   deriving (Show, Eq)
 
 data Import
-  = IAll Name
-  | INamed Name Ident
-  | IPartial Name [(Ident, Ident)]
+  = IAll [Ident]
+  | INamed [Ident] Ident
+  | IPartial [Ident] [(Ident, Ident)]
   deriving (Show, Eq)
 
 data Statement
   = SModule Name AccessLevel [Import] [Statement]
   | STypeDef [(Ident, TypeDef)]
-  | SExpr Expr
+  | SLet { slRecursive :: Bool, slVars ::  [(Ident, Expr)]} -- TODO: Declaration
   deriving (Show, Eq)
 
 data Context
   = CExpr Expr
   | CPattern Pattern
   | CStatement Statement
+  | CImport Import
   | CType Type
   deriving (Show, Eq)
