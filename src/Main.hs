@@ -13,6 +13,8 @@ import Syntax.Tree
 import System.IO
 import Text.Parsec.Error
 
+import Codegen.Codegen
+
 import qualified Data.Map as Map
 
 prompt :: String -> IO String
@@ -74,7 +76,7 @@ main =
           Right(SExpr x) -> do
             putStrLn $ pshow x
             case runResolver basicScope $ resolveExpr x of
-              Left e -> putStrLn $ intercalate "\n" $ map (\(c, name) -> "Cannot find " ++ pshow name ++ "\n in " ++ pshow c) e
+              Left e -> putStrLn $ intercalate "\n" $ map (\(c, name) -> "Cannot find " ++ Pretty.name name ++ "\n while resolving " ++ Pretty.name c) e
               Right x ->
                 case inferExpr nullEnv x of
                   Left e -> putStrLn $ pshow e

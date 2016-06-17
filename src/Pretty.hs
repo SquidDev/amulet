@@ -76,6 +76,10 @@ braces  = delim ("{", "}")
 squares = delim ("[", "]")
 angles  = delim ("<", ">")
 
+quotes, dquotes :: Pretty a => a -> PrettyPrinter
+quotes  = delim ("'", "'")
+dquotes = delim ("\"", "\"")
+
 defaults :: PParam
 defaults = PParam { colours = True
                   , keywordColour = 3
@@ -306,9 +310,13 @@ instance Pretty RecordRow where
 ppshow :: Pretty a => a -> PParam -> String
 ppshow = runPrinter . pprint
 
+
 (<+>) :: (Pretty a, Pretty b) => a -> b -> PrettyPrinter
 a <+> b = pprint a >> pprint b
 infixl 3 <+>
 
 pshow :: Pretty a => a -> String
 pshow = (`runPrinter` defaults) . pprint
+
+name :: Pretty a => a -> String
+name = (`runPrinter` defaults) . keyword . quotes
