@@ -75,6 +75,10 @@ main =
   let item = do
         expr <- parse parseSt
         case expr of
-          Right e -> putStrLn $ pshow e
           Left e -> print e
+          Right x -> do
+            putStrLn $ pshow x
+            case runResolver basicScope $ resolveStatement x of
+              Left e -> putStrLn $ intercalate "\n" $ map pshow e
+              Right x -> putStrLn $ pshow x
   in forever item

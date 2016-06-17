@@ -1,6 +1,6 @@
 module Analysis.NameResolver
   (
-    runResolver, resolveExpr,
+    runResolver, resolveExpr, resolveStatement,
     Scope, NameError(..), NameResolver, TypeScope(TypeScope), ExprScope(ExprScope),
     nullTy, nullExpr, nullScope
   ) where
@@ -53,6 +53,9 @@ lookupVar name@(ScopeName ident) scp =
     x@(Just _) -> x
 lookupVar name scp = Map.lookup name scp
 
+resolveIdent :: (a -> NameResolver a) -> (Ident, a) -> NameResolver (Ident, a)
+resolveIdent func (name, a) = (\a' -> (name, a')) <$> func a
+
 resolveType :: Type -> NameResolver Type
 resolveType t@(TVar _) = return t
 resolveType t@(TIdent name) = do
@@ -66,6 +69,10 @@ resolveType (TInst a b) = TInst <$> resolveType a <*> resolveType b
 resolveType (TFunc a b) = TFunc <$> resolveType a <*> resolveType b
 resolveType (TTuple t) = TTuple <$> mapM resolveType t
 resolveType (TForAll v c t) = TForAll v <$> mapM resolveType c <*> resolveType t
+
+resolveTypeDef :: TypeDef -> NameResolver TypeDef
+resolveTypeDef (TDAlias t) = TDAlias <$> resolveType t
+resolveTypeDef (TDUnion vars) = TDUnion <$> mapM (resolveIdent resolveType) vars
 
 resolveExpr :: Expr -> NameResolver Expr
 resolveExpr e@(ELiteral _) = return e
@@ -195,18 +202,22 @@ handleImport i@(IPartial path renames) = do
           env <- foldM (rename err) (Map.fromSet qualName set) renames
           return $ Map.mapKeysMonotonic qualName env
 
-resolveStatement :: Statement -> ModuleScope -> NameResolver Statement
-resolveStatement (SLet recur vars) scp = do
+resolveStatement :: Statement -> NameResolver Statement
+resolveStatement (SLet recur vars) = do
   let names = Set.map ScopeName $ Set.fromList $ map fst vars
   let scope = (nullTy, ExprScope $ Map.fromSet id names, nullModule)
-  let resolveBinding (n, e) = (\e' -> (n, e')) <$> resolveExpr e
   if recur then do
     extendGlobal scope
-    SLet recur <$> mapM resolveBinding vars
+    SLet recur <$> mapM (resolveIdent resolveExpr) vars
   else do
-    stmt <- SLet recur <$> mapM resolveBinding vars
+    stmt <- SLet recur <$> mapM (resolveIdent resolveExpr) vars
     extendGlobal scope
     return stmt
+resolveStatement (STypeDef tys) = do
+  let names = Set.map ScopeName $ Set.fromList $ map fst tys
+  let scope = (TypeScope $ Map.fromSet id names, nullExpr, nullModule)
+  extendGlobal scope
+  STypeDef <$> mapM (resolveIdent resolveTypeDef) tys
 
 runResolver :: Scope -> NameResolver a -> Either [NameError] a
 runResolver s a =

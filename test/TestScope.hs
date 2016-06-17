@@ -5,7 +5,7 @@ import Test
 
 import Syntax.Tree
 import Analysis.Scope
-import Pretty
+import Pretty hiding (name)
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
