@@ -12,9 +12,13 @@ import Data.List (intercalate)
 import Data.Maybe
 import Syntax.Tree
 import System.IO
+import Codegen.Lua (Statement(Do))
 import Text.Parsec.Error
 
 import Codegen.Codegen
+import Codegen.Emit
+
+import Analysis.SymbolTable
 
 import qualified Data.Map as Map
 
@@ -80,5 +84,8 @@ main =
             putStrLn $ pshow x
             case runResolver basicScope $ resolveStatement x of
               Left e -> putStrLn $ intercalate "\n" $ map pshow e
-              Right x -> putStrLn $ pshow x
+              Right x -> do
+                let xs = compile $ mkST [x]
+                print xs
+                print $ emitS (Do xs)
   in forever item

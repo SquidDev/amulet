@@ -28,6 +28,7 @@ data Expr
   | Op { lhs :: Expr
        , op  :: Operator
        , rhs :: Maybe Expr }
+  | Tuple [Expr]
   | Index Expr String
   | Name Name
   deriving (Eq, Show)

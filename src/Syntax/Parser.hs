@@ -9,12 +9,8 @@ import Text.Parsec.String (Parser)
 import Data.Maybe
 
 import qualified Text.Parsec.Expr as Ex
-
-import qualified Debug.Trace as D
 import Syntax.Parser.Type
 import Syntax.Parser.Top
-
-debug = flip D.trace
 
 param :: Parser (Ident, Maybe Type)
 param = untyped <|> typed
@@ -286,13 +282,14 @@ letstmt = letrec <?> "let statement"
     letbind =  letbindimpl <?> "let binding"
     letbindimpl = do
       nam <- identifier
-      args <- many identifier
+      args <- many param
       reservedOp "="
       e1 <- expression
+      x <- optionMaybe (colon >> atype)
 
       return (nam, foldr lam e1 args)
   
-    lam ar bd = ELambda ar Nothing bd
+    lam (ar, tp) bd = ELambda ar tp bd
 
 statement :: Parser Statement
 statement = module'

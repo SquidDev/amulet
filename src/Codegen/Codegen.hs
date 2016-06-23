@@ -1,94 +1,76 @@
 module Codegen.Codegen where
 
 import qualified Codegen.Lua as L
+import qualified Data.Map as M
 import Syntax.Tree
 
 import Data.List
 
 import Control.Monad.State
 
+import Analysis.SymbolTable
+
 data CompilerState
-  = CompilerState { statements :: [L.Statement] }
+  = CompilerState { statements :: [L.Statement]
+                  , symbolTable :: SymbolTable }
   deriving (Eq, Show)
 
 
-emptyState :: CompilerState
-emptyState = CompilerState []
-
 type Compiler = State CompilerState ()
 
-compile :: Compiler -> [L.Statement]
-compile x = let (_, x') = runState x emptyState in statements x'
+csWithST :: SymbolTable -> CompilerState
+csWithST st = CompilerState [] st
 
-call :: L.Application -> Compiler
-call x 
-  = modify $ \s -> s { statements = statements s ++ [L.SApply x] }
+compile :: SymbolTable -> [L.Statement]
+compile = compile'
+  where compile' st = statements . (\(_, y) -> y) . runState compileSymbols $ csWithST st
 
-function :: String -> [String] -> [L.Statement] -> Compiler
-function _ _ [] = modify id 
-function n a b =  
-  let { va = last a == "..."
-      ; fn = L.Function a va b
-      ; n' = L.Set (L.Scoped n) fn } in emit n' 
+compileSymbols :: Compiler
+compileSymbols = do
+  x <- gets symbolTable
+  mapM_ compileSym $ M.toAscList x
+  return ()
 
 emit :: L.Statement -> Compiler
-emit x = modify $ \s -> s { statements = statements s ++ [x] }
+emit x = modify $ \(CompilerState st s) -> CompilerState (st ++ [x]) s
 
-if' :: L.Expr -> [L.Statement] -> [L.Statement] -> Compiler
-if' cn tr fs = let { cnd = (cn, tr)
-                   ; res = L.If [cnd] fs } in emit res
+compileSym :: SymbolNamed -> Compiler
+compileSym = emit . compileSym' 
+  where compileSym' (nm, (SymbolLet _ ex)) = L.Set (L.Scoped nm) $ compileExpr ex
 
-repeat :: L.Expr -> [L.Statement] -> Compiler
-repeat c b = emit $ L.Repeat c b
+compileExprS = L.Return . compileExpr
 
-while :: L.Expr -> [L.Statement] -> Compiler
-while c b = emit $ L.While c b
-
-set :: String -> L.Expr -> Compiler
-set n e = emit $ L.Set (L.Scoped n) e
-
-num :: Double -> L.Expr
-num = L.Number
-
-int :: Int -> L.Expr
-int x = L.Number $ fromIntegral x
-
-str :: String -> L.Expr
-str = L.String
-
-array :: [L.Expr] -> L.Expr
-array x = L.Table $ mapI bld x 1
-  where bld :: Int -> L.Expr -> (L.Expr, L.Expr) 
-        bld i v = (int i, v)
-        mapI :: (Int -> a -> b) -> [a] -> Int -> [b]
-        mapI _  []     _ = []
-        mapI fn [x]    _ = [fn 1 x]
-        mapI fn (x:xs) n = (fn n x) : mapI fn xs (n + 1)
-
-return' :: L.Expr -> Compiler
-return' x = emit $ L.Return x
-
-compileLit :: Literal -> L.Expr
-compileLit (LBoolean True)  = L.True
-compileLit (LBoolean False) = L.False
-compileLit (LString s)      = L.String s
-compileLit (LNumber n)      = L.Number n
-compileLit LUnit            = array []
-
-
-compileExpr :: Expr -> L.Expr
-compileExpr (ELiteral l) = compileLit l
-compileExpr (ETuple es)  = array $ map compileExpr es
-compileExpr (EList es)  = array $ map compileExpr es
+compileExpr (ELiteral l) = compileLiteral l
+compileExpr (ETuple e) = L.Tuple $ map compileExpr e
 compileExpr (EVar (ScopeName x)) = L.Name $ L.Scoped x
 compileExpr (EVar (QualifiedName xs x)) = L.Name $ L.Qualified xs x
 compileExpr (EIndex e n) = L.Index (compileExpr e) n
-compileExpr (EIf c t f) = L.Function [] False $ [L.If [(c', t')] f']
-  where c' = compileExpr c
-        t' = [L.Return $ compileExpr t]
-        f' = [L.Return $ compileExpr f]
+compileExpr (EIf c t e) = L.Function [] False [L.If [(compileExpr c, [compileExprS t])] [compileExprS e]]
+compileExpr (EApply e x) = L.EApply $ L.Call (compileExpr e) [(compileExpr x)]
+compileExpr (EBinOp l o s) = L.EApply $ L.Call (compileExpr o) [compileExpr l, compileExpr s]
+compileExpr (ELambda var _ e) = L.Function [var] False $ [compileExprS e]
+compileExpr (ELet _ vs e) = compileLet vs e
+compileExpr (EList es) = L.Table $ compileList es 1
+compileExpr (EAssign x' x b) = compileLet [(LetBinding (atd x') x False)] b 
 
-compileExpr (EApply e1 e2) = L.EApply $ L.Call (compileExpr e1) [(compileExpr e2)]
-compileExpr (EBinOp l o c) = L.EApply $ L.Call (compileExpr o) [(compileExpr l), (compileExpr c)]
-compileExpr (ELambda x _ e) = L.Function [x] False $ [L.Return $ compileExpr e]
+compileLiteral (LString l) = L.String l
+compileLiteral (LNumber d) = L.Number d
+compileLiteral (LBoolean False) = L.False
+compileLiteral (LBoolean True) = L.True
 
+compileList (x:xs) n = (L.Number n, compileExpr x):compileList xs (n + 1)
+compileList [] _ = []
+
+compileLet ((LetBinding DDiscard _ _):xs) e = compileLet xs e
+compileLet ((LetBinding n' e' _):xs) e
+  = L.EApply $ L.Call (L.Function [(dtn n')] False [L.Return $ compileLet xs e]) [compileExpr e']
+compileLet [] e = compileExpr e
+
+atd :: Assignable -> Declaration
+atd (AName x) = DName x
+atd (ATuple x) = DTuple $ map atd x
+
+dtn :: Declaration -> Ident
+dtn (DName x) = x
+dtn (DDiscard) = "_"
+dtn (DTuple xs) = intercalate ", " $ map dtn xs
