@@ -6,36 +6,13 @@ import Syntax.Tree
 
 import Data.List
 
-import Control.Monad.State
-
 import Analysis.SymbolTable
 
-data CompilerState
-  = CompilerState { statements :: [L.Statement]
-                  , symbolTable :: SymbolTable }
-  deriving (Eq, Show)
-
-
-type Compiler = State CompilerState ()
-
-csWithST :: SymbolTable -> CompilerState
-csWithST st = CompilerState [] st
-
 compile :: SymbolTable -> [L.Statement]
-compile = compile'
-  where compile' st = statements . (\(_, y) -> y) . runState compileSymbols $ csWithST st
+compile = map compileSym . M.toAscList
 
-compileSymbols :: Compiler
-compileSymbols = do
-  x <- gets symbolTable
-  mapM_ compileSym $ M.toAscList x
-  return ()
-
-emit :: L.Statement -> Compiler
-emit x = modify $ \(CompilerState st s) -> CompilerState (st ++ [x]) s
-
-compileSym :: SymbolNamed -> Compiler
-compileSym = emit . compileSym' 
+compileSym :: SymbolNamed -> L.Statement
+compileSym = compileSym' 
   where compileSym' (nm, (SymbolLet _ ex)) = L.Set (L.Scoped nm) $ compileExpr ex
 
 compileExprS = L.Return . compileExpr
