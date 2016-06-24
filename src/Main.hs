@@ -86,6 +86,5 @@ main =
               Left e -> putStrLn $ intercalate "\n" $ map pshow e
               Right x -> do
                 let xs = compile $ mkST [x]
-                print xs
                 print $ emitS (Do xs)
   in forever item
