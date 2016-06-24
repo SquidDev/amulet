@@ -16,6 +16,7 @@ import Codegen.Lua (Statement(Do))
 import Text.Parsec.Error
 
 import Codegen.Codegen
+import Codegen.Optimize
 import Codegen.Emit
 
 import Analysis.SymbolTable
@@ -85,6 +86,7 @@ main =
             case runResolver basicScope $ resolveStatement x of
               Left e -> putStrLn $ intercalate "\n" $ map pshow e
               Right x -> do
-                let xs = compile $ mkST [x]
-                print $ emitS (Do xs)
+                let (x':_) = compile $ mkST [x]
+                putStrLn $ emitP x'
+                putStrLn $ emitP $ optimizeTree' x'
   in forever item
