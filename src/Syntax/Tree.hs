@@ -157,3 +157,32 @@ data Context
   | CImport Import
   | CType Type
   deriving (Show, Eq)
+
+
+treeMatches :: (Expr -> Bool) -> Expr -> Bool
+treeMatches p (ELiteral l)    = p $ ELiteral l
+treeMatches p (ETuple xs)     = foldr1 (&&) $ map p xs
+treeMatches p (EList xs)      = foldr1 (&&) $ map p xs
+treeMatches p (EIndex x _)    = p x
+treeMatches p (EApply x y)    = p x && p y
+treeMatches p (EIf c t e)     = p c && p t && p e
+treeMatches p (EBinOp l o r)  = p l && p o && p r
+treeMatches p (ELambda _ _ e) = p e
+treeMatches p (ELet _ _ b)    = p b
+treeMatches p (EAssign _ x y) = p x && p y
+treeMatches p (EMatch ps e)   = p e && foldr1 (&&) (map (uncurry $ \_ y -> p e) ps)
+treeMatches p e               = p e
+
+applyTree :: (Expr -> Expr) -> Expr -> Expr
+applyTree p (ETuple expr)    = ETuple $ map p expr
+applyTree p (EList expr)     = EList $ map p expr
+applyTree p (EIndex e x)     = EIndex (p e) x
+applyTree p (EBinOp l o r)   = EBinOp (p l) (p o) (p r)
+applyTree p (EIf c t e)      = EIf (p c) (p t) (p e)
+applyTree p (EApply x y)     = EApply (p x) (p y)
+applyTree p (EDowncast ex t) = EDowncast (p ex) t
+applyTree p (EUpcast ex t)   = EUpcast (p ex) t
+applyTree p (ELambda x t e)  = ELambda x t $ p e 
+applyTree p (ELet rc va e)   = ELet rc (map (\(LetBinding n e m) -> LetBinding n (p e) m) va) (p e)
+applyTree p (EMatch ps e)    = EMatch (map (uncurry $ \x y -> (x, p y)) ps) (p e)
+applyTree p e = p e
