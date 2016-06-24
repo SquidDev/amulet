@@ -27,7 +27,7 @@ compileExpr (EIf c t e)
 compileExpr (EApply e x) = L.EApply $ L.Call (compileExpr e) [(compileExpr x)]
 compileExpr (EBinOp l o s) = L.EApply $ L.Call (compileExpr o) [compileExpr l, compileExpr s]
 compileExpr (ELambda var _ e) = L.Function [var] False $ [compileExprS e]
-compileExpr (ELet _ vs e) = compileLet vs e
+compileExpr (ELet _ vs e) = L.EApply $ L.Call (compileLet vs e) []
 compileExpr (EList es) = L.Table $ compileList es 1
 compileExpr (EAssign x' x b) = compileLet [(LetBinding (atd x') x False)] b 
 compileExpr (EMatch ps e) = L.EApply $ L.Call (L.Function ["__pattern__"] False [genMatch ps]) [compileExpr e]
@@ -49,10 +49,11 @@ compileLiteral (LBoolean True) = L.True
 compileList (x:xs) n = (L.Number n, compileExpr x):compileList xs (n + 1)
 compileList [] _ = []
 
-compileLet ((LetBinding DDiscard _ _):xs) e = compileLet xs e
-compileLet ((LetBinding n' e' _):xs) e
-  = L.EApply $ L.Call (L.Function [(dtn n')] False [L.Return $ compileLet xs e]) [compileExpr e']
-compileLet [] e = compileExpr e
+compileLet xs e = L.Function [] False [L.Do $ (map mklocal $ filter ndisc xs) ++ [compileExprS e]]
+  where mklocal (LetBinding n' e' _) = L.Local [(dtn n', compileExpr e')]
+        ndisc (LetBinding DDiscard _ _) = False
+        ndisc (LetBinding _ _ _) = True
+
 
 atd :: Assignable -> Declaration
 atd (AName x) = DName x
