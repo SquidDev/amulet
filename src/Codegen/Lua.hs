@@ -1,18 +1,23 @@
 module Codegen.Lua where
 
 data Statement
-  = Do     { block     :: [Statement] }
-  | Set    { name      :: Name
-           , val       :: Expr }
-  | While  { cond      :: Expr
-           , block     :: [Statement] }
-  | Repeat { cond      :: Expr
-           , block     :: [Statement] }
-  | If     { conds     :: [(Expr, [Statement])]
-           , else'     :: [Statement] }
-  | ForIn  { iterators :: [(String, Expr)]
-           , block     :: [Statement] }
-  | Local  { names     :: [(String, Expr)] }
+  = Do     { block      :: [Statement] }
+  | Set    { name       :: Name
+           , val        :: Expr }
+  | While  { cond       :: Expr
+           , block      :: [Statement] }
+  | Repeat { cond       :: Expr
+           , block      :: [Statement] }
+  | If     { conds      :: [(Expr, [Statement])]
+           , else'      :: [Statement] }
+  | ForIn  { iterators  :: [(String, Expr)]
+           , block      :: [Statement] }
+  | ForRange { start    :: Double
+             , end      :: Double
+             , step     :: Double
+             , iterator :: String
+             , block    :: [Statement] }
+  | Local  { names      :: [(String, Expr)] }
   | SApply Application
   | Return Expr
   deriving (Eq, Show)
