@@ -14,6 +14,7 @@ optimize :: Expr -> Expr
 optimize x = x
              & applyOpt unwrapSimple
              & applyOpt constFoldSimple
+             & applyOpt constFoldSimple
 
 unwrapSimple :: Expr -> Expr
 unwrapSimple (Function p d [Do xs]) = Function p d xs
