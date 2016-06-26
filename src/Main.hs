@@ -88,5 +88,7 @@ main =
               Right x -> do
                 let (x':_) = compile $ mkST [x]
                 putStrLn $ emitP x'
+                print x'
                 putStrLn $ emitP $ optimizeTree' x'
+                print $ optimizeTree' x' 
   in forever item

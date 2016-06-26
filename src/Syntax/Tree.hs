@@ -161,8 +161,8 @@ data Context
 
 treeMatches :: (Expr -> Bool) -> Expr -> Bool
 treeMatches p (ELiteral l)    = p $ ELiteral l
-treeMatches p (ETuple xs)     = foldr1 (&&) $ map p xs
-treeMatches p (EList xs)      = foldr1 (&&) $ map p xs
+treeMatches p (ETuple xs)     = all p xs
+treeMatches p (EList xs)      = all p xs
 treeMatches p (EIndex x _)    = p x
 treeMatches p (EApply x y)    = p x && p y
 treeMatches p (EIf c t e)     = p c && p t && p e
@@ -170,7 +170,7 @@ treeMatches p (EBinOp l o r)  = p l && p o && p r
 treeMatches p (ELambda _ _ e) = p e
 treeMatches p (ELet _ _ b)    = p b
 treeMatches p (EAssign _ x y) = p x && p y
-treeMatches p (EMatch ps e)   = p e && foldr1 (&&) (map (uncurry $ \_ y -> p e) ps)
+treeMatches p (EMatch ps e)   = p e && all (uncurry $ \_ y -> p e) ps
 treeMatches p e               = p e
 
 applyTree :: (Expr -> Expr) -> Expr -> Expr

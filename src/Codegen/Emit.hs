@@ -189,7 +189,7 @@ instance Emit Statement where
 
 instance Emit Double where emit = tell . show
 instance (Emit a, Emit b) => Emit (a, b) where
-  emit (x, y) = x <+> " = " <+> y
+  emit (x, y) = squares x <+> " = " <+> y
 
 instance Emit Operator where
   emit Add    = emit "+"
