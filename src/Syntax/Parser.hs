@@ -106,57 +106,45 @@ letbind =  letbindimut <?> "let binding"
   where
     letbindimut = do
       mut <- isJust <$> (optionMaybe $ reserved "mut")
-      nam <- declaration
+      nam <- assignment
       reservedOp "="
       e1 <- expression
 
       return $ LetBinding nam e1 mut
 
-declaration :: Parser Declaration
-declaration = build <$> commaSep1 dterm
+assignment :: Parser Assignment
+assignment = build <$> commaSep1 aterm
   where
-        ddiscard = char '_' >> whiteSpace >> return DDiscard
-        dname = DName <$> identifier
-        dparens = parens dtuple
-        dterm = ddiscard <|> dname <|> dparens <|> drecord <?> "declaration"
+        adiscard = char '_' >> whiteSpace >> return ADiscard
+        aname = AName <$> identifier
+        aparens = parens atuple
+        aterm = adiscard <|> aname <|> aparens <|> drecord <?> "assignment"
         -- We don't use declaration as we allow empty tuples here
-        dtuple = build <$> commaSep dterm
+        atuple = build <$> commaSep aterm
 
-        drecord = braces $ semiSep1 record' >>= \x -> return $ DRecord x
+        drecord = braces $ semiSep1 record' >>= \x -> return $ ARecord x
         record' = do x <- ScopeName <$> identifier
                      reservedOp "="
-                     y <- declaration
+                     y <- assignment
                      return (x, y)
 
-        build :: [Declaration] -> Declaration
-        build [] = DDiscard
+        build :: [Assignment] -> Assignment
+        build [] = ADiscard
         build [single] = single
-        build tup = DTuple tup
+        build tup = ATuple tup
 
 list :: Parser Expr
 list = brackets $ EList <$> semiSep1 expression
 
 assign :: Parser Expr
 assign = do
-  nm <- assignable
+  nm <- assignment
   reservedOp "<-"
   e1 <- expression
   reserved "in"
   e2 <- expression
 
   return $ EAssign nm e1 e2
-
-
-assignable :: Parser Assignable
-assignable = atuple
-  where
-        aname  = AName <$> identifier
-        aparens = parens atuple
-        aterm = aname <|> aparens
-        atuple = build <$> commaSep1 aterm
-        build :: [Assignable] -> Assignable
-        build [single] = single
-        build tup = ATuple tup
 
 term :: Parser Expr
 term =
@@ -288,7 +276,7 @@ letstmt = letrec <?> "let statement"
       x <- optionMaybe (colon >> atype)
 
       return (nam, foldr lam e1 args)
-  
+
     lam (ar, tp) bd = ELambda ar tp bd
 
 statement :: Parser Statement

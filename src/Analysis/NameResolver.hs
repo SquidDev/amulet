@@ -116,12 +116,12 @@ resolveExpr (EMatch ptrns match) = do
           return (ptrn', expr')
 
 -- TODO: Detect multiple assignments
-declarationVars :: Declaration -> Set.Set Ident
-declarationVars DDiscard = Set.empty
-declarationVars (DName name) = Set.singleton name
-declarationVars (DTuple vars) = Set.unions $ map declarationVars vars
+declarationVars :: Assignment -> Set.Set Ident
+declarationVars ADiscard = Set.empty
+declarationVars (AName name) = Set.singleton name
+declarationVars (ATuple vars) = Set.unions $ map declarationVars vars
 -- TODO: Handle name on record rows. Maybe: not sure how to do that
-declarationVars (DRecord rows) = Set.unions $ map (declarationVars . snd) rows
+declarationVars (ARecord rows) = Set.unions $ map (declarationVars . snd) rows
 
 -- TODO: Detect [multiple assignments] and [same assignment occurs in all "POr" branches]
 resolvePattern :: Pattern -> NameResolver (Set.Set Ident, Pattern)

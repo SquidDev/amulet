@@ -54,31 +54,23 @@ data Literal
   | LUnit
   deriving (Show, Eq, Ord)
 
--- | The left hand side of a declaration expression
-data Declaration
-  -- | A single variable
-  = DName Ident
-  -- | An underscore: discard the variable
-  | DDiscard
-  -- | A tuple destructuring assignment
-  -- This must contain at least two items
-  | DTuple [Declaration]
-  -- | A record destructuring assignment
-  | DRecord [(Name, Declaration)]
-  deriving (Show, Eq)
-
--- | The left hand side of an assignment expression
-data Assignable
+-- | The left hand side of an assignment or declaration expression
+data Assignment
   -- | A single variable
   = AName Ident
-  -- | A tuple destructuring
-  | ATuple [Assignable]
+  -- | An underscore: discard the variable
+  | ADiscard
+  -- | A tuple destructuring assignment
+  -- This must contain at least two items
+  | ATuple [Assignment]
+  -- | A record destructuring assignment
+  | ARecord [(Name, Assignment)]
   deriving (Show, Eq)
 
 -- | A single variable in a let binding
 data LetBinding
   -- TODO: Operators
-  = LetBinding { lName :: Declaration, lExpr :: Expr, lMutable :: Bool }
+  = LetBinding { lName :: Assignment, lExpr :: Expr, lMutable :: Bool }
   deriving (Show, Eq)
 
 -- | A basic expression
@@ -111,7 +103,7 @@ data Expr
   -- | A let binding
   | ELet { recursive :: Bool, vars :: [LetBinding], expr :: Expr }
   -- | Assign an expression to a variable
-  | EAssign Assignable Expr Expr
+  | EAssign Assignment Expr Expr
   -- | A list constructor.
   | EList [Expr]
   -- | A pattern match
@@ -182,7 +174,7 @@ applyTree p (EIf c t e)      = EIf (p c) (p t) (p e)
 applyTree p (EApply x y)     = EApply (p x) (p y)
 applyTree p (EDowncast ex t) = EDowncast (p ex) t
 applyTree p (EUpcast ex t)   = EUpcast (p ex) t
-applyTree p (ELambda x t e)  = ELambda x t $ p e 
+applyTree p (ELambda x t e)  = ELambda x t $ p e
 applyTree p (ELet rc va e)   = ELet rc (map (\(LetBinding n e m) -> LetBinding n (p e) m) va) (p e)
 applyTree p (EMatch ps e)    = EMatch (map (uncurry $ \x y -> (x, p y)) ps) (p e)
 applyTree p e = p e

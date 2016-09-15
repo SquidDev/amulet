@@ -151,24 +151,18 @@ instance Pretty Literal where
   pprint (LBoolean False) = literal "false"
   pprint LUnit = literal "()"
 
-instance Pretty (Name, Declaration) where
+instance Pretty (Name, Assignment) where
   pprint (x, y) = x <+> " = " <+> y
 
-instance Pretty Declaration where
-  pprint (DName i) = pprint i
-  pprint DDiscard = literal "_"
-  pprint (DTuple ds) = parens $ do
+instance Pretty Assignment where
+  pprint (AName i) = pprint i
+  pprint ADiscard = literal "_"
+  pprint (ATuple ds) = parens $ do
     x <- ask
     pprint $ intercalate ", " $ map (`ppshow` x) ds
-  pprint (DRecord ts) = braces $ do
+  pprint (ARecord ts) = braces $ do
     x <- ask
     pprint $ intercalate "; " $ map (`ppshow` x) ts
-
-instance Pretty Assignable where
-  pprint (AName i) = pprint i
-  pprint (ATuple as) = do
-    x <- ask
-    parens $ intercalate ", " $ map (`ppshow` x) as
 
 instance Pretty LetBinding where
   pprint (LetBinding a e True) = keyword "mut " <+> a <+> " = " <+> e

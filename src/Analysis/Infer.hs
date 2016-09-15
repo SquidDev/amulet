@@ -121,10 +121,10 @@ infer e@(EMatch patterns expr) = do
 
 -- | Gather the types of a declaration
 -- This doesn't unify types, but simply builds an environment from variable names
-inferDeclr :: Declaration -> Infer (Type, TypeEnv)
-inferDeclr DDiscard = fresh >>= \var -> return (var, nullEnv)
-inferDeclr (DName name) = fresh >>= \var -> return (var, TypeEnv $ Map.singleton (ScopeName name) var)
-inferDeclr (DTuple items) = do
+inferDeclr :: Assignment -> Infer (Type, TypeEnv)
+inferDeclr ADiscard = fresh >>= \var -> return (var, nullEnv)
+inferDeclr (AName name) = fresh >>= \var -> return (var, TypeEnv $ Map.singleton (ScopeName name) var)
+inferDeclr (ATuple items) = do
   fetched <- mapM inferDeclr items
   let tys = map fst fetched
   let env = foldl envUnion nullEnv $ map snd fetched
