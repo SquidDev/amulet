@@ -19,8 +19,6 @@ import Codegen.Codegen
 import Codegen.Optimize
 import Codegen.Emit
 
-import Analysis.SymbolTable
-
 import qualified Data.Map as Map
 
 prompt :: String -> IO String
@@ -90,5 +88,5 @@ main =
                 putStrLn $ emitP x'
                 print x'
                 putStrLn $ emitP $ optimizeTree' x'
-                print $ optimizeTree' x' 
+                print $ optimizeTree' x'
   in forever item
