@@ -1,0 +1,348 @@
+\section{Expressions}
+
+\subsection{Literals}
+\subsubsection{Numeric literals}
+Numeric literals can be written as base 2, 8, 10 or 16 numbers.
+
+Binary numbers are prefixed by 0b, hexadecimal numbers are prefixed with 0x, and octal numbers are prefixed with \texttt{0o}. None of the previous can contain an exponent or decimal place.
+
+Base 10 numbers can contain a decimal point and an exponent.
+
+A number can have infinitely repeated decimals after the decimal point (possibly directly) prefixed by a ``\textasciitilde{}''.
+
+All numbers can be prefixed with a positive or negative sign, as well as allowing _ between any two digits. This allows breaking a number up into nibbles or thousands.
+
+Numbers with a decimal point are inferred to be of a type with an instance of \texttt{Coerce Rational a}, while numbers without a decimal point (though optionally with an exponent) are inferred to be types with an instance of \texttt{Coerce Integer a}.
+
+\subsubsection{Character literals}
+Characters are composed of a single character code between single quotes (\texttt{'}). A character code can be composed of:
+
+\begin{itemize}
+\item A single character (such as \texttt{a})
+\item An escape character (\texttt{\textbackslash\textquotesingle}, \texttt{\textbackslash n}, \texttt{\textbackslash r}, \texttt{\textbackslash t}, \texttt{\textbackslash "})
+\item A decimal character code: \texttt{\textbackslash 123}
+\item A hex character code: \texttt{\textbackslash xAB}
+\item The character can be prefixed with \texttt{u} to convert it to a unicode character. This also allows writing UTF8 literals:
+\item A UTF8 literal \texttt{\textbackslash uABCD} This is a hexadecimal value: as many hex characters are consumed as possible. If a semicolon (\texttt{;}) then that will be consumed and the sequence exited.
+\end{itemize}
+
+\subsubsection{String literals}
+Strings are written as a series of character codes between double quotes (\texttt{"}). Prefixing with a \texttt{u} will convert it to a unicode string, also allowing UTF8 literals.
+
+\subsubsection{Unit literal}
+An empty pair of parenthesis \texttt{()} are considered a unit value.
+
+\subsection{Primary expressions}
+\begin{grammar}
+<expr> ::= <literal>
+      \alt <expr> `:' <type>
+      \alt <apply>
+      \alt <type application>
+      \alt <lambda>
+      \alt <list>
+      \alt <vector>
+      \alt <tuple>
+      \alt <parens>
+      \alt <record>
+      \alt <if>
+      \alt <case>
+      \alt <match>
+      \alt <let>
+      \alt <do>
+\end{grammar}
+
+\subsubsection{Function application}
+Any two expressions following another are considered a function application. If functions are applied to a lesser number of arguments than they expect, this is partial application (which also means that functions are automatically curried).
+
+Function application associates to the left. That is, \texttt{a b c d} is interpreted as \texttt{(((a b) c) d)}.
+
+\begin{grammar}
+<op> ::= <name>
+    \alt \lit{\`{}} <name> \lit{\`{}}
+
+<apply> ::= <expr> <expr>
+       \alt <expr> <op> <expr>
+       \alt `(' <expr> <op> `)'
+       \alt `(' <op> <expr> `)'
+\end{grammar}
+
+\subsubsection{Infix operators}
+Infix (binary) operators are implemented as functions which take two arguments. By convention a binary operator should exclusively be composed of symbols.
+
+You can convert arbitrary functions of type \texttt{a -> b -> c} to infix operators by surrounding their name with backticks (\texttt{\`{}foo\`{}}).
+
+\paragraph{Operator sections}
+
+Operator sections are partially-applied binary operators, written in infix form for clarity. An operator can either be applied to their left or right operand, which gives rise to the two categories of operator sections: either \textit{left} or \textit{right}.
+
+A right operator section is an operator applied to their left operand, as in \texttt{(e +)}, which is fully equivalent to \texttt{($\lambda$x. e + x)}. A left operator section is applied to their right operand, as in \texttt{(+ e)}, which is fully equivalent to \texttt{($\lambda$x. x + e)}.
+
+\subsubsection{Explicit type application}
+It is possible to apply a type to a function which takes type parameters (such as constraints for \texttt{forall}s. This allows explicitly specifying a particular type class implementation.
+
+\begin{grammar}
+<type application> ::= <expr> `#' <type>
+\end{grammar}
+
+\subsubsection{Lambda expressions}
+
+Lambda expressions form the base of any functional language worth its salt. In Amulet, there are two ways to express a lambda abstraction: Either \texttt{\textbackslash x$_1$ ... x$_2$ -> e} or \texttt{$\lambda$x$_1$ ... x$_2$ -> e}.
+
+Lambda expressions have the highest precedence of any expression.
+
+\begin{grammar}
+<lambda> ::= ( `\textbackslash' | \lit{$\lambda$} ) \{ <var> \} `->' <expr>
+\end{grammar}
+
+\subsubsection{List literals}
+Linked lists are represented in Amulet through repeated usage of the \texttt{(::)} value constructor, which can get tiring. To aid in the creation of lists, a comma-separated list of expressions delimited by square brackets (\texttt{[]}) is interpreted as a list.
+
+The methods \texttt{(::)} and \texttt{[]} are both variables within the $\mathtt{List}\ h\ t\ r$ class. This means additional forms of lists (such as HLists) can be constructed from the same syntax.
+
+Also related to list literals are vector literals. Vectors are, in Amulet, semantically equivalent to a Lua table or a C array; They contain a sequence of values in contiguous memory without pointers to the following/previous element. These, however, are delimited by square brackets with vertical bars on the \textit{inner} side: While \texttt{[1, 2, 3]} is a list, \texttt{[| 1, 2, 3 |]} is a vector.
+
+\begin{grammar}
+<list contents> ::= `'
+               \alt <expr> \{ `,' <expr> \} [`,']
+
+<list> ::= `[' <list contents> `]'
+
+<vector> ::= `[|' <vector contents> `|]'
+\end{grammar}
+
+\subsubsection{Tuple literals}
+Tuples are composed of two or more values within a pair of parenthesis (0 values are considered a unit, 1 value is just for grouping expressions). Each expression within a tuple is separated with a comma.
+
+\begin{grammar}
+<unit>   ::= `(' `)'
+
+<parens> ::= `(' <expr> `)'
+
+<tuple>  ::= `(' [<expr>] `,' [<expr>] \{ `,' [<expr>] \} `)'
+\end{grammar}
+
+Tuples can be sectioned by omitting values (leaving the commas), this pulls the value out to a lambda around the tuple: $(, v) : a \to (a, b)$ where $v : b$.
+
+\subsubsection{Record field access}
+Record's fields can be accessed using \texttt{record.field}.
+
+\begin{grammar}
+<record access> ::= `.' <ident>
+               \alt `(' `.' <ident> `)'
+\end{grammar}
+
+\subsubsection{Record literals}
+Record literals are composed of a series of comma separated, key-value pairs between matching braces.
+
+\begin{minted}{haskell}
+let a = { ident1 = expr1, ident2 = expr2, ident3 = expr3 }
+\end{minted}
+
+\begin{grammar}
+<record field>  ::= <ident> `=' <expr>
+
+<record fields> ::= <record field> \{ `,' <record field> \} [`,']
+
+<record> ::= `\{' `\}'
+        \alt `\{' <record fields> `\}'
+\end{grammar}
+
+
+\subsubsection{Record updates}
+Record updates let you create a new record based on an existing record with some updates.
+
+\begin{minted}{haskell}
+let b = { a | ident1 = expr4, -ident2, ident3 $= expr5, ident4 <- expr6 }
+\end{minted}
+
+Their syntax is:
+\begin{grammar}
+<record update> ::= `\{' <expr> `|' <record update updates> `\}'
+               \alt `\{' `|' <record update updates> `\}'
+               \alt `\{' <record update updates> `|\}'
+
+<record update updates> ::= <record update update> \{ `,' <record update update> \} [ `,' ]
+
+<record update update> ::= <record update remove>
+                      \alt <record update add>
+                      \alt <record update replace>
+                      \alt <record update modify>
+\end{grammar}
+
+There are 4 types of updates:
+\begin{description}
+\item[Remove]
+These remove a key from the record: $\{\,r\,|\,-x\,\} : \mathtt{Record}\ p$ where $r : \mathtt{Record}\ (x : a\,|\,p)$.
+\begin{grammar}
+<record update remove> ::= `-' <ident>
+\end{grammar}
+
+\item[Add]
+These add a key to the record: $\{\,r\,|\,x$\ <-\ $v\,\} : \mathtt{Record}\ (x : a\,|\,p)$ where $r : \mathtt{Record}\ p$ and $v : a$.
+\begin{grammar}
+<record update add> ::= <ident> `<-' [<expr>]
+\end{grammar}
+
+\item[Replace]
+These change the value of an existing key: $\{\,r\,|\,x = v\,\} : \mathtt{Record}\ (x : a\,|\,p)$ where $r : \mathtt{Record}\ (x : b\,|\,p)$ and $v : a$.
+\begin{grammar}
+<record update replace> ::= <ident> `=' [<expr>]
+\end{grammar}
+
+\item[Modify]
+These modify the value of an existing key using a function: $\{\,r\,|\,x$\ \$=\ $f\,\} :  \mathtt{Record}\ (x : a\,|\,p)$ where $r : \mathtt{Record}\ (x : b\,|\,p)$ and $f : b \to a$.
+\begin{grammar}
+<record update modify> ::= <ident> `\$=' [<expr>]
+\end{grammar}
+\end{description}
+
+For any of the updates that take an expression you can ``section'' them by omitting the expression, this pulls the expression out as another parameter to the block: $\{\,r\,|\,+x =\,\} \equiv \lambda v. \{\,r\,|\,+x = v\,\}$.
+
+There are also two syntaxes for sectioning out the parent record: $\{| <updates> \} \equiv \{ <updates> |\} \equiv \lambda r. \{ r | <updates> \}$.
+
+\subsection{Control flow}
+
+\subsubsection{If expressions}
+If expressions allow different expressions to be evaluated depending on the value of a condition. The condition \textit{must} be of type \texttt{Bool}.
+
+If statements are started with \texttt{if}, followed by a condition, the \texttt{then} keyword then the expression to be evaluated on a \texttt{True} value. This should be followed by the \texttt{else}
+
+This expression can either appear on the same line or on a new line followed by an indent. Each expression’s indentation are independent, so one can use a complex multiline expression and the other a single variable. This allows if expressions to be chained.
+
+All branches’ types must be unifiable.
+
+\begin{minted}{haskell}
+-- Simple single line
+print $ if a then b else c
+
+-- Multiple line if statements
+print $ if a then b
+        else
+           let c = doSomethingFancy a
+               d = moreFancyThings
+          in c d d
+
+-- Chaining
+print $ if a then b
+        else if c then d
+        else e
+\end{minted}
+
+\begin{grammar}
+<if> ::= `if' <expr> `then' <expr> `else' <expr>
+\end{grammar}
+
+\subsubsection{Cond expression}
+Amulet provides a way to simplify the writing of long \texttt{if}-\texttt{else if} chains. These expressions are started with the word \texttt{cond} (coming from the Lisp macro of the same name\cite{lispCond}) . This keyword is then followed by multiple lines of the form \texttt{| condition -> expression}.
+
+All branches’ types must be unifiable.
+
+If Amulet cannot prove that the \texttt{cond} expression is total then a warning will be emitted and an fallback branch will be emitted which produces an error.
+
+\begin{grammar}
+<cond branch> ::= `|' <expr> `->' <expr>
+
+<cond> ::= `cond' \{ <cond branch> \}
+\end{grammar}
+
+\subsubsection{Match expressions}
+Match expressions provide a way to branch based off of a series of patterns. They follow a similar syntax to \texttt{cond} expressions. They start with \texttt{match <expr> of} and are followed by multiple lines of the form \texttt{| pattern -> expression}. An optional guard can be placed after the condition (which must evaluate to a \texttt{Bool}).
+
+All branches’ types must be unifiable.
+
+If Amulet cannot prove that the \texttt{match} expression is total then a warning will be emitted and fallback branch will be emitted which produces an error.
+
+\begin{grammar}
+<match pattern> ::= `|' <pattern>
+
+<match branch>  ::= \{ <match pattern> \} `->' <expr>
+              \alt \{ <match pattern> \} `if' <expr> `->' <expr>
+
+<match>         ::= `match' <expr> `of' \{ <match branch> \}
+\end{grammar}
+
+\subsection{Let bindings}
+Let bindings are used to create a scope with one new variable. These expressions are composed of the binding and the expression to evaluate with this new variable. This expression can either appear after an explicit \texttt{in} or on a new line with the same indentation level as the let expression.
+
+Let bindings come in three key forms (destructing assignments, function creation and recursive function(s) creation). Let bindings are non-recursive by default: this requires you to think about dependencies more which makes you try to decouple things.
+
+\begin{grammar}
+<lhs>      ::= <pattern>
+          \alt `op' (`left' | `right' ) [<digit>] <pattern> <ident> <pattern>
+          \alt <pattern> \lit{\`{}} <ident> \lit{\`{}} <pattern>
+          \alt <ident> \{ <pattern> \}
+          \alt `(' <ident> `)' \{ <pattern> \}
+
+<binding>  ::= <lhs> [`:' <type> ] `=' <expr>
+          \alt `foreign' <ident> `:' <type>
+
+<bindings> ::= <binding>
+          \alt <binding> \{ `and' <binding> \}
+
+<continue> ::= `in' <expr>
+          \alt <newline> <expr>
+
+<let>      ::= `let' [`rec'] <bindings> <continue>
+\end{grammar}
+
+\subsubsection{Destructuring bind}
+A destructuring bind is simply composed of a pattern followed by an equals sign. This is simply sugar for a pattern matching expression:
+
+\begin{minted}{haskell}
+let (x, y) = f
+g $ x y
+\end{minted}
+is equivalent to
+\begin{minted}{ocaml}
+match f with
+| (x, y) -> g $ x y
+\end{minted}
+
+As with \texttt{match} expressions a warning will be produced if the expression isn’t total.
+
+\subsubsection{Function creation}
+Let expressions can be used to create functions. These can either be written in normal or infix form.
+
+If in normal form then the function name is given followed by a series of arguments. This is followed by an equals sign and the function body. If the function is an operator then it must be surrounded by parentheses.
+
+Infix form is similar, but the function name is given between the two arguments. If the function name is not an infix operator then it must be surrounded in backticks to convert it into one.
+
+\subsubsection{Recursive binds}
+The syntax for function creation can be expanded to allow recursive functions using the \texttt{rec} keyword. The body of the function will be defined in the scope including the variable.
+
+Mutually recursive functions can be defined by separating functions with the \texttt{and} keyword.
+
+\subsubsection{Some examples}
+\begin{minted}{ocaml}
+let op left x |> f = f x
+
+let (a, b) = undefined
+
+let a = 1
+    b = b
+1 + 2
+
+let a = 1
+    b = 2 in 1 + 2
+    
+let f x = 
+        let y = x + 1
+            z = x - 1
+        y - z
+    g x = (+2)
+f 2 + g 3
+\end{minted}
+
+\subsection{\texttt{do} notation}
+Do notation is simply sugar for binds and returns over an instance of $\mathtt{Bind} a$. All existing expressions are valid (though lets are changed) and an additional bind syntax is added.
+
+\texttt{do} blocks are started with the \texttt{do} keyword. This can optionally be followed with a explicit type-class application specifying which implementation of $\mathtt{Bind} a$ to use.
+
+\begin{grammar}
+<do expr> ::= <pattern> `<-' <expr>
+           \alt `let' <bindings>
+           \alt <expr>
+
+<do>      ::= `do' [ `#' <type> ] \{ <do expr> \}
+\end{grammar}
+

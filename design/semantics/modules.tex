@@ -1,0 +1,30 @@
+\section{Modules}
+Modules allow splitting components into separate components. Unlike Haskell, exports are defined at the definition level. By default variables are exported, though you can also specify other levels:
+
+\begin{itemize}
+\item Public: export this variable, allowing access anywhere.
+\item Internal: export this variable, but only allowing access inside this compilation unit.
+\item Private: do not export this method
+\end{itemize}
+
+It is also possible to re-export entries from other modules.
+
+If a variable's signature consumes an object which is has a more restrictive export level then an error would occur. For instance:
+
+\begin{minted}{fsharp}
+data private X = X Int
+
+(* An error occurs as f is public but X is private and so isn't exported *)
+let public f (X a) : Int = a
+\end{minted}
+
+In the case of sum types, it is possible to export the type but not its constructors. This means it is trivial to provide a interface without exposing the implementation.
+
+All definitions are accessible from any module when compilation occurs. This allows cross-module interaction and optimisation. However export checks occur after Amulet is parsed but before this exposing occurs so it is not possible to access inaccessible objects.
+
+\subsubsection{Implicit modules}
+Some constructs automatically create child modules which are imported into the primary module. These are generally used for types, and so you can index the type name to 
+
+\paragraph{Type classes} All methods defined in a type class are automatically added to a submodule of the same name. This means you can use \texttt{Show.show} in addition to \texttt{Show}.
+
+\paragraph{Tagged Unions} All constructors and destructors defined in a tagged union are added to a submodule of the same name. This means you can use \texttt{Expr.Var} as both a constructor and in pattern matching.

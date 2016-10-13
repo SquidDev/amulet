@@ -1,0 +1,42 @@
+\section{Basic syntax}
+
+The syntax of Amulet is primarily a mixture of OCaml and Haskell. It uses indentation to determine blocks of code.
+
+\subsection{Identifiers and Naming Conventions}
+Identifiers can be composed of most Unicode character. There are some restrictions:
+
+\begin{itemize}
+\item Identifiers cannot contain \texttt{[](){},;"\`{}\textquotesingle}.
+\item Identifiers cannot start with a digit.
+\item Identifiers cannot contain the ``Other'' and ``Separator''\cite{unicodeCats}\cite{unicodeData} character groups.
+\item The symbols \texttt{+-/\textbackslash*.,:|} cannot be mixed with symbols not in that set.
+\end{itemize}
+
+You can also use double backticks to have a multi-word variable name: \texttt{\`{}\`{}This is a fancy variable name\`{}\`{}}.
+
+A period can be used to access child variables in modules.
+
+\begin{grammar}
+<start char>  ::= a | b | c | ...
+
+<later char>  ::= <start char> | 0 | 1 | 2 | ...
+
+<ident>       ::= <start char> \{ <later char> \}
+             \alt \{ `+' | `-' | ... \}
+
+<name>        ::= <ident> \{ `.' <ident> \}
+\end{grammar}
+
+Amulet has several conventions for names:
+\begin{itemize}
+\item Modules, types and type constructors should be written using PascalCase.
+\item Variables, function names, type parameters and record field names should be lowercase.
+\end{itemize}
+
+\subsection{Comments}
+Comments come in two forms: line comments (comments which last from the delimiter until a line break) and block comments (comments which last until the terminating block).
+
+Line comments are started with \texttt{;}.
+Block comments are started with \texttt{(*} and finished with \texttt{*)}. These can be nested to allow easier commenting out of code.
+
+You can document an binding using \texttt{;;} or \texttt{(** ... *)}. Documentation comment can be exported from a file to HTML with the contents rendered as Markdown.

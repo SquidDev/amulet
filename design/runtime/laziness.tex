@@ -1,0 +1,71 @@
+\subsection{Laziness}
+
+Amulet, though strict by default, has standard library functions and compiler extensions to deal with laziness.
+
+\subsubsection{Notation}
+
+Before introducing the distinction between \texttt{Lazy} and \texttt{Strict} modules, we present a useful notation for
+strictness analysis.
+
+Strictness analysis mostly follows reduction rules that involve divergent terms, which are denoted by $\bot$. These such
+terms will halt evaluation with an error message, as is the case with \texttt{error} or \texttt{undefined}, or reduce
+into themselves, as is the case with the paradoxical $\omega$ combinator, $\left(\lambda{x}.x\ x\right)\
+\left(\lambda{x}.x\ x\right)$. Though the $\omega$ combinator is not well-typed, similar looping terms are, such as
+$\mathtt{let\ rec}\ x\ =\ x\ \mathtt{in} x$.
+
+A function can be \textit{strict} in its argument. This is indicated by the following equivalence, which says that
+\textit{$f$ applied to $\bot$ is $\bot$}.
+\[
+f\ \bot\ =\ \bot
+\]
+
+However, if a function is \textit{lazy} in its argument, when that function is applied to $\bot$, a concrete result is
+returned. For example, given the function $\mathtt{f\ \tilde{x}} = 1$, then $f\ \bot \equiv 1$.
+
+\subsubsection{Strict and Lazy Modules}
+
+Amulet modules can be annotated through the use of compiler pragmas, such as the \texttt{LAZY} or \texttt{STRICT}
+pragmas, which control strictness.
+
+In a module that is strict by default (that is, every module without an annotation), then all lambda expressions are
+automatically strict unless marked with a lazy pattern (this includes top-level combinators, as strictness is handled in
+the desugared form). Formally,
+\[
+  \left(\lambda{p}. e\right)\ \bot \mapsto \bot\ \forall\ p\ \text{where \textit{p} is not lazy}
+\]
+
+In lazy modules, however, all patterns are automatically assumed lazy, unless explicitly marked strict (by use of a
+bang-pattern, for example). This also has the consequence that any type variable $\alpha$ is converted to a lazy type,
+such as $\mathtt{Lazy}\ \alpha$. This maintains the laziness properties across module boundaries, and has no
+observable side effects, since $\mathtt{Lazy}\ \alpha \sim \alpha$.
+
+\subsubsection{Thunks}
+
+Thunks are the representation of a suspended - in other words, \textit{lazy} - computation. A thunk represents a value
+that is yet to be evaluated. Since laziness is marked in a type (A lazy value doesn't have type $\alpha$, instead having
+the type $\mathtt{Lazy}\ \alpha$), there is no added overhead checking if a value is a thunk.
+
+The Amulet runtime takes advantage of the fact that thunks are uniformly represented as pointers to do \textit{thunk
+  sharing}, which reduces duplication of work. While a na\"{i}ve compiler might generate two separate thunks for two
+expressions that are semantically equivalent, the Amulet compiler will not. Since these thunks are shared, they'll only
+be evaluated once.
+
+As an example of thunk sharing, we present an Amulet combinator representing a computation to be executed twice, and how
+that combinator would be simplified to share most computations.
+
+\[
+  \mathtt{let}\ f\ \_\ =\ \left(2 + 2\right) + \left(2 + 2\right)
+\]
+
+As the expression $\left(2 + 2\right)$ is used twice in exactly the same terms, it is simple to notice that this work
+can be shared, by introducing a new, fresh let binding and giving that as the argument to the top-level
+$\left(+\right)$.
+
+\[
+  \mathtt{let}\ f\ \_\
+             = \mathtt{let}\ a = \left(2 + 2\right)
+                \mathtt{in}\ a + a
+\]
+
+Given this definition, we can see how $\left(2 + 2\right)$ is now only computed once. Thunk sharing is used in Amulet
+along with \textit{Thunk replacement}, which replaces a thunk for $x$ with the normal form of $x$.

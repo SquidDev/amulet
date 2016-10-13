@@ -1,0 +1,171 @@
+\section{Types}
+
+\subsection{Primary types}
+Types are composed of several key expressions:
+
+\begin{grammar}
+<type> ::= <name>
+      \alt <type application>
+      \alt <forall>
+      \alt <constraint>
+      \alt <type function>
+      \alt <type tuple>
+      \alt `(' <type> `)'
+      \alt `_'
+      \alt `[' <type> `]'
+      \alt `[|' <type> `|]'
+      \alt <record>
+      \alt <row>
+      \alt <union>
+      \alt <unifies>
+
+<var> ::= <ident>
+     \alt `(' <ident> : <type> `)'
+
+<type application> ::= <type> <type>
+                  \alt <type> <name> <type>
+                  \alt <type> \lit{\`{}} <name> \lit{\`{}} <type>
+
+<forall>        ::= `forall' \{ <var> \} `.' <type>
+
+<constraint>    ::= <type> `=>' <type>
+
+<function type> ::= <type> `->' <type>
+
+<tuple type>    ::= <type> \{ `*' <type> \}
+
+<unifies>       ::= <type> \lit{$\sim$} <type>
+\end{grammar}
+The $type\ application$, $forall$, $constraint$ and $type\ function$ rules are right associative, whilst $unifies$ is non-associative.
+
+\todo[inline]{What is the precedence of these?}
+
+\subsection{Type annotations}
+\begin{itemize}
+\item \texttt{:} is used to annotate a variable or expression having a type.
+\item \texttt{\_} can be used to mark a type wildcard (not a type variable, just something you don’t want to explicitly write). So you could have \texttt{[\_]} to constrain it to be a list of something.
+\end{itemize}
+
+\subsubsection{Rows and Unions}
+Rows are composed of a series of key-type pairs or a union of two rows:
+
+\begin{grammar}
+<row body> ::= \{<ident> `:' <type> `,'\}
+          \alt <ident>
+          
+<row union> ::= `'
+           \alt <row_body> \{ `|' <row_body> \}
+
+<row>      ::= `(' <row union> `)'
+\end{grammar}
+
+\todo[inline]{What syntax are we using for union types? Braces are taken for record syntax.}
+
+\subsubsection{Records}
+Record definitions are composed of a series of identifier keys to type pairs separated by commas within braces.
+
+\begin{grammar}
+<record>      ::= `\{' <row union> `\}'
+\end{grammar}
+
+\subsection{Type declarations}
+Types can only be declared in a module. There are two forms of type declarations:
+
+\begin{itemize}
+\item Aliases: allowing referencing a longer type name as a shorter one (or renaming it if it conflicts or any other reason)
+\item Type definitions: used for creating sum and product types.
+\end{itemize}
+
+\subsubsection{Type names}
+Type names are defined as an identifier followed by a series of free type variables and/or concrete types.
+The parameters that are specified within the RHS of the definition \textit{must} exist on the LHS.
+
+\subsubsection{Type aliases}
+The \texttt{type} keyword is used to define a type alias:
+
+\begin{grammar}
+<type name def> ::= <ident> \{ <var> \} 
+               \alt `op' (`left' | `right') [<digit>] <var> <ident> <var>
+               \alt <var> \lit{\`{}} <ident> \lit{\`{}} <var>
+
+<type name>     ::= <type name>  [ `:' <type> ]
+
+<type def> ::= `type' <type name> `=' <type>
+          \alt `type' `foreign' <type name>
+\end{grammar}
+
+\subsubsection{Sum type definitions}
+Sum types are composed of one or more type-constructors, each followed by the types the product type is composed of.
+
+\begin{grammar}
+<product name> ::= <ident> \{<type>\}
+              \alt <type> `(' <ident> `)' <type>
+              \alt <type> \lit{\`{}} <ident> \lit{\`{}} <type>
+
+<product type> ::= <product name>  [ `:' <type> ]
+
+<sum type>     ::= `data' <type name> `=' \{`|' <product type> \}
+              \alt `data' `foreign' <sum name>
+\end{grammar}
+
+If the declaration starts on a new line it should have a leading `|', otherwise not.
+
+\begin{minted}{haskell}
+data X = A | B
+
+data Y = 
+    | C Int
+    | D 
+\end{minted}
+
+\paragraph{GADTs}
+GADTs are defined as so:
+
+\begin{minted}{haskell}
+data Foo a = Foo1 Int : Foo Int
+           | Foo2     : Foo a
+\end{minted}
+
+Type variables defined on the RHS are accessible on the left:
+
+\begin{minted}{haskell}
+data Bar a = Bar1 a b : forall b . Foo a
+           | Bar2     : Foo a
+\end{minted}
+
+\subsubsection{Type classes}
+Type classes are marked with the \texttt{class} keyword. You can then specify a series of constraints on various parameters before specifying the actual type. All constraints’ parameters must appear in the type class’s definition.
+
+\begin{grammar}
+<class constraint> ::= <type> `=>'
+
+<functional dep>   ::= \{ <ident> \} `->' \{ <ident> \}
+
+<binding>  ::= <lhs> [`:' <type> ] [`=' <expr>]
+
+<bindings> ::= <binding>
+          \alt <binding> \{ `and' <binding> \}
+
+<class body> ::= `type' <type name> [`=' <type> ]
+            \alt `data' <type name> [`=' \{ '|' <product type> \} ]
+            \alt `let' [`rec'] <bindings>
+
+<class>            ::= `class' \{ <class constraint> \} <type> [ `|' <functional dep> \{ `,` <functional dep> \} ] `where' <class body>
+
+<instance>         ::= `impl' <ident> \{ <var> \} `=' <type> `where' <class body>
+\end{grammar}
+
+\begin{minted}{haskell}
+class Show a where -- or class Show a =
+    let show : a -> String
+
+impl X = Show String where
+    let show x = "!" ++ x ++ "!"
+\end{minted}
+
+The beginning of the type class’s body is marked with the \texttt{where} keyword and an indent. The body contains a series of variables with type annotations with optional definitions. It is possible for all definitions to be filled and depend on one another: when creating an implementation Amulet will determine if you have provided sufficient information for a complete definition.
+
+\paragraph{Type class implementations}
+Implementations share a similar syntax to type class definitions, using \texttt{impl} instead of \texttt{class}. However, instead of following the type class with type parameters you can use any type expression.
+
+The body of the implementation uses an identical syntax to that of type classes, though empty definitions are not allowed.

@@ -1,0 +1,89 @@
+\section{Patterns}
+Patterns are used in the left-hand-side of where and let bindings, in the clauses of matches and in the declarations of functions.
+
+There are several different patterns that can occur in an Amulet program. Though this is a fixed set, they can be combined to match against more complicated data.
+
+\begin{grammar}
+<pattern> ::= <literal>
+         \alt `(' <pattern> `)'
+         \alt `_'
+         \alt <var>
+         \alt <var> '@' <pattern>
+         \alt <constructor pattern>
+         \alt <list pattern>
+         \alt <vector pattern>
+         \alt <tuple pattern>
+         \alt <record pattern>
+\end{grammar}
+
+\subsection{Wildcards}
+Denoted by \texttt{_}, this pattern matches anything and does no binding. As an example, \texttt{let _ = x in e} discards the value x (and is optimized to \texttt{e}). Formally, the set of free variables of an expression in the scope created by a \texttt{_} binder is the same as the set of free variables of the expression.
+
+\subsection{Literal Patterns}
+These match against a given literal, that is, a number, string, or character, and bind nothing. Matching on a string is equivalent to matching on a vector of characters. These patterns, however, are not free, as they entail an \texttt{Eq} constraint on the parameter.
+
+\subsection{Capturing patterns}
+These can be any valid identifier, matching anything and binding them to the given name. These are semantically equivalent to \texttt{name@_}.
+
+\subsection{At-patterns}
+At-patterns are a way to give an otherwise nameless pattern a name. An at-pattern will bind its name to the match of the pattern it was created from in the resulting scope. These take the form of \texttt{name@pattern}.
+
+\subsection{List and Vector Patterns}
+List pattern matching syntax exists as syntactic sugar for repeated matching against the \texttt{(::)} constructor. They match against a list of exact size. \texttt{[x,y,z]} is equivalent to \texttt{x::y::z::[]}, where \texttt{x}, \texttt{y} and \texttt{z} are patterns. For matching against a list of at least N elements, the syntax \texttt{[x,y,z] :- xs} is allowed, where \texttt{x}, \texttt{y}, \texttt{z}, and \texttt{xs} are patterns. This is equivalent to \texttt{x::y::z::xs}.
+
+Like list constructing, the destructor is polymorphic across all types within the $\mathtt{List}\ h\ t\ r$ class, allowing matching in the same style as constructing.
+
+The same sugar exists for vectors, but this is builtin rather than sugar. \texttt{[| x, y, z |]} matches against a 3-element vector, while \texttt{[| x, y, z |] :- xs} matches against a vector of \textit{at least} 3 elements. The typical way of matching against the head/tail of a vector is \texttt{[|x|] :- xs}.
+
+\begin{grammar}
+<list pattern contents> ::= `'
+                       \alt <pattern> \{ `,` <pattern \} [`,']
+
+<list pattern>          ::= `[' <list pattern contents> `]'
+
+<vector pattern>        ::= `[|' <vector pattern contents> `|]'
+                       \alt <pattern> `:-' <pattern>
+\end{grammar}
+
+\subsection{Tuple patterns}
+Tuple patterns are used to extract multiple variables from tuples
+
+\begin{grammar}
+<tuple pattern> ::= `(' <pattern> \{ `,' <pattern> \} [`,'] `)'
+\end{grammar}
+
+\subsection{Constructor Patterns}
+Constructor patterns match against a value constructor, and thus are used for destructuring abstract data, such as lists. Obviously constructor patterns can be used to match against the multiple cases of sum types.
+
+The basic form is \texttt{Name}. This matches against a nullary constructor. For constructors with more fields, the form is \texttt{(Name p$_1$ … p$_n$)}. This binds everything that the set of \texttt{p$_1$ … p$_n$} binds. For example, \texttt{(Ratio\ _\ _)} doesn’t bind anything.
+
+As with functions, constructors can be matched (and applied) in infix form. For example, \texttt{(_\ \`{}Ratio\`{}\ _)} is equivalent to \texttt{(Ratio\ _\ _)}
+
+\begin{grammar}
+<constructor pattern> ::= <name> \{ <pattern> \}
+                     \alt <pattern> <name> <pattern>
+                     \alt <pattern> \lit{\`{}} <name> \lit{\`{}} <pattern>
+\end{grammar}
+
+\subsubsection{Record Patterns}
+Record patterns are used to match over records. They share the same syntax as record constructors, though with pattern on the RHS rather than expressions:
+
+\begin{grammar}
+<record field ptrn>  ::= <identifier> `=' <expr>
+
+<record fields ptrn> ::= <record field ptrn> \{ `,' <record field ptrn> \} [`,']
+
+<record ptrn> ::= `\{' `\}'
+        \alt `\{' <record fields ptrn> `\}'
+        \alt `\{' <ptrn> `|' <record fields ptrn> `\}'
+\end{grammar}
+
+It is worth noting that this pattern requires that the specified fields exist on the matchee. For instance the following would not typecheck:
+
+\begin{minted}{ocaml}
+match { x = 1 } with
+| { x = a, y = b } -> sqrt $ a^2 + b^2
+| _ -> 0
+\end{minted}
+
+As the \texttt{y} field does not appear on the matchee.

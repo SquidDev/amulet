@@ -1,0 +1,57 @@
+\section{A basic calculus}
+Amulet is composed of multiple layer of lambda calculus, each layer describing the layer below it. There are two primary levels of calculus: expressions ($e$) and types ($\tau$).
+
+Every object in both the expression and type calculus has a type. In the case of expressions it is of type $\tau$. Types also have the type $\tau$, though lifted one level higher: $\tau_n$ is of type $\tau_{n+1}$. This is known as a "cumulative hierarchy". Basic types can be considered to be on $\tau_0$, types describing types (on $\tau_1$) are known as "kinds".
+
+These layers are best demonstrated by an example.
+\begin{itemize}
+\item The root layer are the expressions or values. The calculus here describes the operation of your program. We will use the basic expression \texttt{show}.
+\item Types help ensure that the program is well formed. This prevents you from adding a number to a string. The type of this expression is $\forall a . \mathtt{Show}\ a \Rightarrow a \to \mathtt{String}$. This type is composed of several key components: 
+\begin{itemize}
+\item $\forall a . \tau$ creates an environment for the type $\tau$ containing the type variable $a$.
+\item $\mathtt{Show}\ a \Rightarrow \tau$ states that the type constraint $\mathtt{Show}\ a$  must exist for the type $\tau$ to exist.
+\item $a \rightarrow \mathtt{String}$ is a function that maps the type variable $a$ to the type \texttt{String}. 
+\end{itemize}
+\item Most types are of type \texttt{Type} (often abbreviated to $*$), for example \texttt{String} or $a \to \mathtt{String}$ . However \texttt{Show} is of kind $* \to\mathtt{Constraint}$. This indicates a kind which maps a type to a \texttt{Constraint}.
+\end{itemize}
+
+\subsection{A calculus}
+The calculus is defined in terms of expressions, types and kinds.
+\begin{align*}
+v =&                                 & \text{variable}            \\
+  |&\ x : \tau                      & \mathtt{term\ variable}    \\
+  |&\ \alpha : \tau                 & \mathtt{type\ variable}    \\
+  |&\ \Gamma :  \tau \sim \tau      & \mathtt{coercion\ variable}\\
+\\
+e =&                                 & \text{expressions}         \\
+  |&\ v                              & \mathtt{variable}          \\
+  |&\ \mathtt{let}\ v = e_1 \mathtt{in}\ e_2              & \mathtt{let\ binding}    \\
+  |&\ \mathtt{let rec}\ (v_n = e_n)+ \mathtt{in}\ e_{n+1} & \mathtt{letrec\ binding} \\
+  |&\ \lambda x. e                   & \mathtt{term\ lambda}      \\
+  |&\ \Lambda \alpha. e              & \mathtt{type\ lambda}      \\
+  |&\ \Lambda (\Gamma : \tau_1 \sim \tau_2). e  & \mathtt{coercion\ lambda} \\
+  |&\ e_1\ e_2                       & \mathtt{term\ application} \\
+  |&\ e\ \tau                        & \mathtt{type\ application} \\
+  |&\ e\ \Gamma                      & \mathtt{coercion\ application} \\
+  |&\ \mathtt{match}\ e_1\ \mathtt{with}\ |\ p \rightarrow e_2 & \mathtt{pattern\ matching} \\
+  |&\ e \rhd \Gamma                  & \mathtt{type-safe\ cast}   \\
+\\
+\tau =&                              & \text{types}               \\
+  |&\ \alpha                         & \mathtt{type\ variable}    \\
+  |&\ \tau_1\ \tau_2                 & \mathtt{type\ application} \\
+  |&\ \forall \alpha . \tau          & \mathtt{for\ all}          \\
+  |&\ \tau_1 \Rightarrow \tau_2      & \mathtt{constraint}        \\
+% |&\ (x:\tau_1) \rightarrow \tau_2  & \mathtt{arrow}             \\
+  |&\ \tau_1 \rightarrow \tau_2      & \mathtt{arrow}             \\
+\end{align*}
+
+\subsection{Kinds}
+As discussed above, all types are described by a type.
+
+\begin{itemize}
+\item \texttt{Type}: A fully constructed type. This is the base case for all types: its type is $\mathtt{Type}_{n+1}$.
+\item \texttt{Constraint : $*$}: A constraint over a type.
+\item \texttt{Coercion : $*$}: A coercion between two types.
+\item \texttt{Row} ($\#$): map of string keys to kinds (like a disjoint union but with strings). As this is polymorphic over kinds it must have a kind applied to it first ($\square \to \square$).
+\item \texttt{Union} ($\%$): a unique, unordered set of a given kind. These are also polymorphic and so must be given a kind.
+\end{itemize}

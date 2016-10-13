@@ -1,0 +1,26 @@
+\section{Run-time and Compile-time Semantics}
+
+\subsection{The Runtime System}
+Since Amulet is a pure language, there are many things that are fundamental to writing programs that could not be
+implemented within it, the most important of which being I/O. Seeing as there is no way of expressing I/O actions in a
+pure language, we expose untyped bindings from the runtime system, and have \textit{interface modules} link against
+those.
+
+The runtime system, or \textit{RTS} for short, provides, along with handle-based I/O,
+\begin{itemize}
+\item Automatic memory management (garbage collection) that can handle cyclic data structures.
+\item An efficient linear data structure for high-performance code where linked lists are inappropriate (The
+      $\mathtt{Vector}\ \alpha$ type).
+\item Bindings to various big number frameworks (bigint, GMP, etc...), for arbitrary precision numbers.
+\item Operations on unboxed numbers (integers and doubles).
+\item Miscellaneous functions for management of thunks.
+\item Support for infinite recursion.
+\end{itemize}
+
+The compiler knows about RTS functions, and will insert invocations to them where appropriate. Such applications are
+marked with the compiler pragma \texttt{RTS}, and can only be present in modules not marked \texttt{Safe}, as they are
+intrinsically unsafe.
+
+Though \texttt{Safe} modules can't use RTS functions, there are bindings to all of the functions which may be considered
+safe, such as \texttt{force\#} (which evaluates a thunk unconditionally), in safe modules. The binding for
+\texttt{force\#} is $\mathtt{force}: \mathtt{Lazy}\ \alpha \to \alpha$.

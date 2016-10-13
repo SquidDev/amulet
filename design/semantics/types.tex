@@ -1,0 +1,175 @@
+\section{Types}
+Types in Amulet are composed of functions, tuples and primitives. You can store multiple types together in a tagged union (or sum type). A tagged union with one entry is a useful way of boxing a type to ensure that it cannot be accidentally used as an object of the same type but different semantics.
+
+Types can also be generic over one or more parameters. When inferring the type for an expression, the most generic type will always be used. Constraints can be put on generic parameters by specifying type class implementations that must exist for this set of parameters. There can be multiple constraints, each applying to multiple parameters.
+
+There is no subtyping in Amulet, \textit{however} type constraints can be loosened through the upcast operator: this converts an existing value to a more general type: for instance \texttt{[a]} can be upcast to \texttt{Show b}.
+
+\subsection{Types and kinds}
+\begin{quote}
+A kind is the type of a type constructor or, less commonly, the type of a higher-order type operator. A kind system is essentially a simply typed lambda calculus "one level up", endowed with a primitive type, denoted $*$ and called \texttt{Type}, which is the kind of any data type which does not need any type parameters.\cite{kindsWikipedia}
+\end{quote}
+
+The base lambda calculus in Amulet is that which operates on values, namely the input program. Every value must have a corresponding type. 0 might have type \texttt{int} and the empty list type \texttt{[a]}. These have kinds $*$ and $* \to *$ respectively, where $*$ is a shorthand notation for \texttt{Type}.
+
+However $*$ is not the only kind in Amulet. Constraints, such as \texttt{Show Int}, also have a kind called, imaginatively, \texttt{Constraint}.  However type classes generally take one or more parameters and so have kind  $* \to \mathtt{Constraint}$.
+
+\subsubsection{Unions and rows}
+In order to build more complex types Amulet adds row and union kinds. These are polymorphic over kinds and so have the signature $\square \to \square$. Here the $\square$ symbol represents all kinds such as types, constraints, rows and unions. These can then be used to create a compound type: $\mathtt{Row} \to *$
+
+Union kinds represent a unique, unordered set of a given kind. They are denoted by \texttt{Union} or $\%$. Unions are written using basic set notation: $\left \{  \mathtt{Int}, \mathtt{Bool} \right \}$ is a set containing the \texttt{Int} and \texttt{Boolean} types.
+
+Row kinds represent a map of string keys to kinds (like a disjoint union but with strings). This is denoted by \texttt{Row} or $\#$. Rows are written with the key value pairs within parenthesis: $\left ( \mathtt{name : String}, \mathtt{age : Int} \right )$.
+
+Unions and rows share similar semantics as they allow being combined with another object of the same kind. For instance you can add \texttt{String} to the union \texttt{a} with  $\left \{ \mathtt{String} | \mathtt{a} \right \}$. This also highlights the fact that unions and rows can be polymorphic (this case is $\mathtt{Row} \to \mathtt{Row}$). This simple fact allows emulating subtyping of these kinds. When creating a union of row objects where both sides have the same key the value must be unifiable.
+
+It is also possible to take the union of two polymorphic kinds such as $\left \{ { a | b }\right \}$ (however, type inference is not guaranteed).
+
+\subsection{Universal quantification}
+Universal quantification, or $\forall$ is a way of marking a type that can exists for all types matching its criteria. For instance the identity function would be universally quantified as any type can be applied to it. 
+
+\subsubsection{Constraints}
+For universal quantification to be useful, constraints must be added to the type. Constraints come in two forms: a type class constraint, or a unification requirement. 
+
+The former requires that a particular type class instance exists: $\forall a . \mathtt{Num}\ a \Rightarrow a \rightarrow a$ states that $\mathtt{Num}\ a$ must exist. It is worth noting that any number of variables (or constant types) can be give
+n to the type class: $\forall a. \mathtt{Num\ Int} \Rightarrow a \rightarrow a$ is equally valid, though meaningless as the only valid implementation would be the identity function.
+
+A unification requirement states that two types must unify for this type to exist. An simple example might be $\forall a. a \sim \mathtt{Int} \Rightarrow a$. This type is pointless as the only value of $a$ which will satisfy this requirement is \texttt{Int}. However, this can be useful with more complex types such as rows or unions.
+
+\subsection{Record types}
+Record types express a way of handling key-value pairs where the keys are known at compile time. Records are implemented using rows, with a hidden polymorphic argument, allowing for converting records with many fields to records with less. Strictly records are defined as:
+
+\begin{minted}{haskell}
+data Record p = forall a . Record ( a |  p )
+\end{minted}
+
+\subsection{Tagged unions}
+Tagged unions, also known as \textit{sum-of-product types} or \textit{Algebraic Data Types}, are data structures that can take on several variations. Only one of these variants may be in use at once, and a tag field explicitly indicates so.
+
+Tagged unions are represented using a row, where each entry is the type of the corresponding entry. For example:
+
+\begin{minted}{haskell}
+data Expr = Var Name
+          | Abs Name Expr
+          | App Expr Expr
+\end{minted}
+could be represented as
+\begin{minted}{haskell}
+type ExprTotal = (
+    Var : Name -> Expr, 
+    Abs : Name -> Expr -> Expr, 
+    App : Expr -> Expr -> Expr,
+)
+
+data Expr = Expr (Union ExprTotal)
+\end{minted}
+
+\texttt{Union} is an internal Amulet type which is understood by the compiler to form a union type.
+
+\paragraph{Using the union kind}
+It would be nice to replace this with a union as it doesn't \textit{need} to have the types of the constructor. However this is hard as the union is over types rather than strings.
+
+\subsubsection{Narrowed functions}
+The main benefit of using rows to represent ADTs is that we can define functions which only take a subset of the values: for instance `head` could only accept non-nil lists.
+
+For example, require a function which accepts \texttt{Abs} or \texttt{App} but not \texttt{Var}. Lets us consider the type $\mathtt{ExprPartial}\ p$ which represents a subset of \texttt{Expr}. We can define these requirements for this function:
+
+You should be able to pass in anything of the form:
+\begin{itemize}
+\item \texttt{ExprPartial (App : _, Abs : _)}
+\item \texttt{ExprPartial (App : _)}
+\item \texttt{ExprPartial (Abs : _)}
+\end{itemize}
+
+But not of types:
+
+\begin{itemize}
+\item \texttt{ExprPartial ()}
+\item \texttt{ExprPartial (Var : _ | p)}
+\end{itemize}
+ 
+Namely the arguments passed to this required function must be a subset of \texttt{(App : _, Abs : _)} and not an empty list. The first is trivial to solve: we can define a constraint $\mathtt{RowSubset}\ p a$ which requires that $a \subset p$.
+
+\begin{minted}{haskell}
+type RowSubset p a = (a | p) ~ p
+\end{minted}
+
+More difficult is defining a type which refuses the empty row. This could either be done with a non-empty-row constraint, or a more general "does not unify" requirement. For now we will consider the former and call it $\mathtt{NonEmpty}\ a$.
+
+We can then give the definition of $\mathtt{ExprPartial}\ p$ and of our function:
+
+\begin{minted}{haskell}
+data ExprPartial a = ExprPartial (RowSubset ExprTotal a)
+
+type Partial p = forall a . NonEmpty a => RowSubset p a => p
+func : ExprPartial (Partial (App : _, Abs : _))
+\end{minted}
+
+Of course \texttt{Expr} can now be generalized to:
+
+\begin{minted}{haskell}
+type Expr = ExprPartial ExprTotal
+\end{minted}
+
+\subsubsection{Pattern matching}
+This form of narrowing can also be used in pattern matching. Each case can remove one of the possible values of `p` from `ExprPartial`:
+
+\begin{minted}{haskell}
+case (x : Expr) of
+| Abs name _ = name
+| y = ... -- y : ExprPartial (Var : _, App : _) as it cannot be Abs if you hit this point
+\end{minted}
+
+\subsubsection{GADTs}
+It is also possible to define GADTs in the same way, though obviously the resulting type is not just \texttt{Expr}. For instance, the GADT
+
+\begin{minted}{haskell}
+data Expr a where
+    I   : Int  -> Expr Int
+    B   : Bool -> Expr Bool
+    Add : Expr Int -> Expr Int -> Expr Int
+\end{minted}
+
+would be represented:
+
+\begin{minted}{haskell}
+type ExprTotal a = (
+    I   : Int -> Expr Int
+    B   : Bool -> Expr Bool
+    Add : Expr Int -> Expr Int -> Expr Int
+)
+\end{minted}
+
+\subsection{Type classes}
+Type classes are a way to ensure different types have a consistent interface, and to constrain polymorphic types on having an instance of a type class. A fully instantiated type class resolves to a type of \texttt{Constraint}.
+
+A constraint section on a type is given as a fat-arrow behind the type. For example, the following snippet says that ``for all types for which there is an instance of \texttt{a}, there is a function \texttt{show} transforming it into a \texttt{string}.''
+
+\begin{minted}{haskell}
+show : forall a. Show a => a -> String
+\end{minted}
+
+The type-class mechanism poses a way to do name overloading based on types. In contrast to, say, Java interfaces, type classes allow the user to be parametric on the return type, not only the parameter types.
+
+\begin{minted}{haskell}
+class Read a where
+  read : String -> a
+\end{minted}
+
+When resolving type classes the type checking algorithm will unify the current type across all instances. If more than one instance matches then an error will be created.
+
+Type classes can also be named and a specific implementation can be used at compile time. Implementations are passed in to the type lambda. For instance using the above show definitions we get:
+
+$$
+\mathtt{show} = \Lambda (a : \mathtt{Type})\ (x : \mathtt{Num}\ a) \to \lambda (x : a)\ (y : a) \to function\ body
+$$
+
+Type classes can take have multiple parameters. In the case where some parameters define others, functional dependencies\cite{funcDeps} can be used to prevent conflicting definitions.
+
+Some type classes will be auto-generated by the compiler (such as \texttt{Eq} or \texttt{Show}) if the criteria are matched (for instance all child types also implement \texttt{Show}). Auto-generated instances can safely be overridden or masked: there will not be a compile error if both a auto-generated and normal instance match.
+
+\paragraph{Named implementations}
+All type class instances require an explicit name. This allows us to explicitly specific implementations to functions.
+
+\paragraph{Type families}
+Type classes can also include type definitions\cite{typeFams}, allowing for type aliases and data definitions to exist and be instantiated within a type class.

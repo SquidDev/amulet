@@ -1,0 +1,45 @@
+\section{Modules}
+
+\subsection{Importing modules}
+Modules can be imported with the \texttt{open} keyword. It is possible to partially import modules and import them to a child variable.
+
+\begin{grammar}
+<open> ::= `open' <name>
+      \alt `open' <name> `as' <ident>
+      \alt `open' <name> `with' `(' \{ <ident> [`as' <ident> ] \}`)'
+\end{grammar}
+
+\subsection{Exporting definitions}
+All definitions can have have their access modifier placed after the declaration ``type'' but before the main definition. An example would be for let bindings:
+
+\begin{minted}{fsharp}
+let private x = 2
+\end{minted}
+
+It is also possible to re-export imported modules with the \texttt{export} keyword.
+
+\begin{grammar}
+<access modifier> ::= `public' | `internal' | `private'
+
+<export>          ::= `export' [<accces modifier>] [`type' | `data' ] <name>
+\end{grammar}
+
+\todo[inline]{
+Or put access modifier on the import keyword? We need a way of only exporting some entries: maybe allowing \texttt{as} and \texttt{with}? 
+
+Also worth looking at Idris' way of doing things - \url{http://docs.idris-lang.org/en/latest/tutorial/modules.html} Especially the \texttt{export}/\texttt{public export} distinction.
+}
+
+\subsection{Defining modules}
+Modules are defined with the \texttt{module} keyword, followed by the module name and its body. Normally the module's body should be indented. However if the module definition is the first expression in the file then no indentation is required.
+
+\begin{grammar}
+<module>       ::= `module' <name> `=' <module_body>
+
+<module body>  ::= <type def>
+              \alt <sum def>
+              \alt <module>
+              \alt <class>
+              \alt <instance>
+              \alt <expr>
+\end{grammar}

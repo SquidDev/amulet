@@ -1,0 +1,87 @@
+\documentclass[notitlepage]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[a4paper, margin=2cm]{geometry}
+
+\setlength{\parindent}{0em}
+\setlength{\parskip}{1em}
+
+\usepackage[english]{babel} 
+\usepackage[backend=biber,style=authoryear,citetracker,pagetracker=page]{biblatex}
+\addbibresource{references.bib}
+
+\usepackage{alltt}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{minted}
+\usepackage{syntax}
+\usepackage{todonotes}
+\usepackage{csquotes}
+\usepackage[colorlinks=true, allcolors=black]{hyperref}
+\usepackage{titlesec}
+
+\titleformat{\chapter}[block]
+  {\normalfont\huge\bfseries}{\thechapter.}{1em}{\Huge}
+\titlespacing*{\chapter}{0pt}{-19pt}{0pt}
+
+\setlength{\grammarindent}{13em}
+
+\makeatletter
+
+\DeclareCiteCommand{\cite}[\cbx@wrap]
+  {\gdef\cbx@keys{}}
+  {\xappto\cbx@keys{\thefield{entrykey},}}
+  {}
+  {\ifcsundef{cbx@lastin@\cbx@keys @\strfield{postnote}}
+     {\csnumgdef{cbx@lastin@\cbx@keys @\strfield{postnote}}{-1}}{}%
+   \ifsamepage{\value{instcount}}{\csuse{cbx@lastin@\cbx@keys @\strfield{postnote}}}
+     {\footnotemark[\csuse{cbx@lastfn@\cbx@keys @\strfield{postnote}}]}
+     {\xappto\cbx@cite{\noexpand\footcite%
+        [\thefield{prenote}][\thefield{postnote}]{\cbx@keys}%
+        \csnumgdef{cbx@lastfn@\cbx@keys @\strfield{postnote}}{\value{\@mpfn}}%
+        \csnumgdef{cbx@lastin@\cbx@keys @\strfield{postnote}}{\value{instcount}}}}}
+
+\newrobustcmd{\cbx@wrap}[1]{#1\cbx@cite\gdef\cbx@cite{}}
+\def\cbx@cite{}
+
+\makeatother
+
+\title{The Amulet Programming Language}
+\author{SquidDev, demhydraz, CoderPuppy}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Amulet is an experimental, purely-functional programming language borrowing features from OCaml, Haskell, PureScript and Idris.
+\end{abstract}
+
+\tableofcontents
+
+\chapter{Semantics}
+\input{semantics/overview}
+\input{semantics/calculus}
+\input{semantics/types}
+\input{semantics/modules}
+
+\chapter{Syntax}
+\input{syntax/overview}
+\input{syntax/types}
+\input{syntax/expressions}
+\input{syntax/patterns}
+\input{syntax/modules}
+
+\chapter{Runtime}
+\input{runtime/rts}
+\input{runtime/laziness}
+\input{runtime/stdlib}
+
+\chapter{The future}
+\input{extensions}
+
+\printbibliography
+
+\end{document}

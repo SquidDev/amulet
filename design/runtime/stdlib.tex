@@ -1,0 +1,41 @@
+\section{Standard Library}
+
+\begin{itemize}
+\item Numbers (Num, Integral, Fractional)
+\item Debugging (Show/Debug, Read?, debug)
+\item Iterables (Traversable, Foldable)
+\item Binary, Text
+\item IO, Async
+\item Errors (Maybe, Either)
+\item Monads (State, Reader, Writer)
+\item General functions (id, undefined, error)
+\item Avoid duplication at all costs (`m (m a) -> m a` is better than `[[a]] -> [a]`)
+\item Monad Transformers or Freer?
+\item If Lazy: `force : Lazy a -> a`
+\item Number hierarchy: demhydraz recommends \url{https://tonyday567.github.io/tower/index.html}
+\item Operators and their precedence
+\end{itemize}
+
+\subsection{Strings}
+\begin{minted}{haskell}
+class Binary a where
+  toString : a -> String Byte
+  fromStringHead : String Byte -> (a, String Byte)
+  fromStringTail : String Byte -> (String Byte, a)
+  -- not entirely sure about these deconstructing functions
+
+instance Binary Byte where
+  MAGIC
+
+data String a = Binary a => MAGIC
+\end{minted}
+
+So then \texttt{Binary} would be \texttt{String Byte} and \texttt{Text} (or \texttt{BinaryString} and \texttt{UnicodeString}) would be \texttt{String CodePoint} (or maybe \texttt{String UTF8})
+
+\begin{quote}
+This would require codepoints to be a fixed size right? I haven't fully decided how to handle strings yet: the problem with UTF8 is that indexing them isn't $O(1)$.
+
+No, \texttt{toString} can generate any length string and \texttt{fromStringHead} just needs to parse the first code point
+
+There is a slight problem with \texttt{fromStringTail}: I don't know if you can parse UTF8 in reverse
+\end{quote}
