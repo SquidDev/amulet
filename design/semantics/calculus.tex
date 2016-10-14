@@ -1,11 +1,11 @@
 \section{A basic calculus}
-Amulet is composed of multiple layer of lambda calculus, each layer describing the layer below it. There are two primary levels of calculus: expressions ($e$) and types ($\tau$).
+Amulet is composed of multiple layers of lambda calculus, each layer describing the layer below it. There are two primary levels of calculus: expressions ($e$) and types ($\tau$).
 
 Every object in both the expression and type calculus has a type. In the case of expressions it is of type $\tau$. Types also have the type $\tau$, though lifted one level higher: $\tau_n$ is of type $\tau_{n+1}$. This is known as a "cumulative hierarchy". Basic types can be considered to be on $\tau_0$, types describing types (on $\tau_1$) are known as "kinds".
 
 These layers are best demonstrated by an example.
 \begin{itemize}
-\item The root layer are the expressions or values. The calculus here describes the operation of your program. We will use the basic expression \texttt{show}.
+\item The root layer consists of expressions and values. The calculus here describes the operation of your program. We will use the basic expression \texttt{show}.
 \item Types help ensure that the program is well formed. This prevents you from adding a number to a string. The type of this expression is $\forall a . \mathtt{Show}\ a \Rightarrow a \to \mathtt{String}$. This type is composed of several key components: 
 \begin{itemize}
 \item $\forall a . \tau$ creates an environment for the type $\tau$ containing the type variable $a$.

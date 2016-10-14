@@ -78,7 +78,7 @@ Operator sections are partially-applied binary operators, written in infix form 
 A right operator section is an operator applied to their left operand, as in \texttt{(e +)}, which is fully equivalent to \texttt{($\lambda$x. e + x)}. A left operator section is applied to their right operand, as in \texttt{(+ e)}, which is fully equivalent to \texttt{($\lambda$x. x + e)}.
 
 \subsubsection{Explicit type application}
-It is possible to apply a type to a function which takes type parameters (such as constraints for \texttt{forall}s. This allows explicitly specifying a particular type class implementation.
+It is possible to apply a type to a function which takes type parameters (such as constraints for \texttt{forall}s). This allows explicitly specifying a particular type class implementation.
 
 \begin{grammar}
 <type application> ::= <expr> `#' <type>
@@ -98,6 +98,7 @@ Lambda expressions have the highest precedence of any expression.
 Linked lists are represented in Amulet through repeated usage of the \texttt{(::)} value constructor, which can get tiring. To aid in the creation of lists, a comma-separated list of expressions delimited by square brackets (\texttt{[]}) is interpreted as a list.
 
 The methods \texttt{(::)} and \texttt{[]} are both variables within the $\mathtt{List}\ h\ t\ r$ class. This means additional forms of lists (such as HLists) can be constructed from the same syntax.
+\todo[inline]{We need two type classes, one for cons, one for nil. Otherwise you'd have to implement \texttt{[]} for \texttt{List a (Vect n a) (Vect (S n) a)} which makes no sense. -cpup}
 
 Also related to list literals are vector literals. Vectors are, in Amulet, semantically equivalent to a Lua table or a C array; They contain a sequence of values in contiguous memory without pointers to the following/previous element. These, however, are delimited by square brackets with vertical bars on the \textit{inner} side: While \texttt{[1, 2, 3]} is a list, \texttt{[| 1, 2, 3 |]} is a vector.
 
@@ -334,9 +335,9 @@ f 2 + g 3
 \end{minted}
 
 \subsection{\texttt{do} notation}
-Do notation is simply sugar for binds and returns over an instance of $\mathtt{Bind} a$. All existing expressions are valid (though lets are changed) and an additional bind syntax is added.
+Do notation is simply sugar for \texttt{>>=} and \texttt{pure} over an instance of $\mathtt{Monad}\ \alpha$. All existing expressions are valid (though lets are changed) and an additional bind syntax is added.
 
-\texttt{do} blocks are started with the \texttt{do} keyword. This can optionally be followed with a explicit type-class application specifying which implementation of $\mathtt{Bind} a$ to use.
+\texttt{do} blocks are started with the \texttt{do} keyword. This can optionally be followed with a explicit type-class application specifying which implementation of $\mathtt{Monad} \alpha$ to use.
 
 \begin{grammar}
 <do expr> ::= <pattern> `<-' <expr>

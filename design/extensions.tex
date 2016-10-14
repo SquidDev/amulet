@@ -5,10 +5,11 @@ This catalogues various extensions which could be added to Amulet on a later dat
 \subsection{Active patterns}
 One of the nice things about F$^\sharp$ is the ability to define custom patterns (such as \url{http://stackoverflow.com/a/2429874}). 
 
-Haskell has a similar feature ( \url{https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html\#pattern-guards}) known as View patterns.
+Haskell has a similar feature ( \url{https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html\#view-patterns}) known as View patterns.
 
 \subsection{Disposable types}
 F$^\sharp$ adds the \texttt{use} binding. This will automatically call the destructor on the object when it falls out of scope. This would be really nice for things like file handles or sockets, though tricky as it has side effects. It could potentially be emulated by having a \texttt{withFile} method which acquires a file handle, applies a function over it, and destroys the handle.
 
 \subsection{Dependent types}
 Merge the type and term level to allow applying functions over types and using functions within types.
+\todo[inline]{That's not dependent typing (though it often goes along with it). You just need types that depend on values. like $(x : \tau_1) \to \tau_2$ and $(x : \tau_1 $**$\,\tau_2)$ which are universal quantification and existential quantification respectively. I think technically just merging the type and term namespaces would actually give us dependent types. -cpup}
