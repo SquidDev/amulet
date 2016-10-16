@@ -1,11 +1,50 @@
 {-# LANGUAGE RecordWildCards #-}
-module Amulet.Parser.Lexer where
+module Amulet.Parser.Lexer 
+  ( module X
+  , langDef
+  , ids
+  , identifier
+  , reserved
+  , operator
+  , reservedOp
+  , charLiteral
+  , stringLiteral
+  , natOrFloat
+  , symbol
+  , lexeme
+  , parens
+  , natural
+  , integer
+  , floating
+  , braces
+  , squares
+  , angles
+  , semi
+  , colon
+  , comma
+  , dot
+  , semiSep
+  , commaSep
+  , semiSep1
+  , commaSep1
+  , initParseState
+  , laidout
+  , indentCmp
+  , indented
+  , align
+  , block
+  , block1
+  , Parser
+  , ParserState(..)
+  )
+  where
 
 import qualified Text.Parsec.Token as T
 import Text.Parsec.String ()
-import Text.Parsec.Prim
-import Text.Parsec.Pos
-import Text.Parsec.Char
+import Text.Parsec.Prim as X
+import Text.Parsec.Pos as X
+import Text.Parsec.Char as X
+import Text.Parsec.Combinator as X
 import Control.Monad.Identity
 
 import Data.Char
@@ -14,8 +53,6 @@ type Parser = Parsec String ParserState
 
 data ParserState
   = ParserState { indents :: Int } deriving (Eq, Ord)
-
---
 
 langDef :: T.GenLanguageDef String ParserState Identity
 langDef
@@ -39,7 +76,7 @@ langDef
                   , T.caseSensitive = True }
 
 ids :: Parser Char
-ids = satisfy ((`elem` gcLetters) . generalCategory) where
+ids = satisfy ((`elem` gcLetters) . generalCategory)
 
 lexer :: T.GenTokenParser String ParserState Identity
 lexer = T.makeTokenParser langDef
@@ -51,6 +88,9 @@ reservedOp = T.reservedOp lexer
 charLiteral = T.charLiteral lexer
 stringLiteral = T.stringLiteral lexer
 natOrFloat = T.naturalOrFloat lexer
+natural = T.natural lexer
+integer = T.integer lexer
+floating = T.float lexer
 symbol = T.symbol lexer
 lexeme = T.lexeme lexer 
 parens = T.parens lexer
@@ -107,7 +147,6 @@ indented = indentCmp (>) <?> "Block (indented further)"
 
 align :: Parser ()
 align = indentCmp (==) <?> "Block (same indentation)"
-
 
 block, block1 :: Parser a -> Parser [a]
 block p  = laidout (many  (align >> p))
