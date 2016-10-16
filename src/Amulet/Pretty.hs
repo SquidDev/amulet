@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
 {-# LANGUAGE DefaultSignatures #-}
-module Pretty where
+module Amulet.Pretty where
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set

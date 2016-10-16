@@ -1,6 +1,6 @@
 module Amulet.Core where
 
-import Pretty
+import Amulet.Pretty
 
 data Name = Name Int String
 
