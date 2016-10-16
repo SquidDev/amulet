@@ -12,12 +12,9 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 executable amulet
---other-modules:      Amulet.Parser
---                  , Amulet.Lexer
-  build-tools:        happy == 1.19.*
-                    , alex  == 3.2.*
   build-depends:      mtl        == 2.2.*
                     , base       == 4.9.*
+                    , parsec     == 3.1.*
                     , containers == 0.5.*
   hs-source-dirs:     src
   main-is:            Main.hs
