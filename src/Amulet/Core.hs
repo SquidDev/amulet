@@ -2,6 +2,9 @@ module Amulet.Core where
 
 import Amulet.Pretty
 
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+
 data Name = Name Int String
 
 instance Pretty Name where
@@ -12,7 +15,7 @@ data Var = TermVar Name Type
          | CoercionVar Name Type Type
 
 instance Pretty Var where
-  pprint (TermVar n t) = parens $ n <+> opClr " : " <+> t 
+  pprint (TermVar n t) = parens $ n <+> opClr " : " <+> t
   pprint (TypeVar n t) = parens $ tvClr n <+> opClr " : " <+> t
   pprint (CoercionVar n f t) = parens $ tvClr n <+> opClr " : " <+> f <+> opClr " ~ " <+> t
 
@@ -43,6 +46,8 @@ data Type = TVar Var
           | TForAll Var Type
           | TConstraint Type Type
           | TFunc Type Type
+          | TRow (Map.Map String Type) (Set.Set Var)
+          | TUnion (Set.Set Type) (Set.Set Var)
 
 instance Pretty Type where
   pprint (TVar v) = pprint v
@@ -52,6 +57,14 @@ instance Pretty Type where
   pprint (TConstraint c t) = c <+> opClr " => " <+> t
   pprint (TFunc f t) = f <+> opClr " -> " <+> t
   pprint TType = typeClr "Type"
+  pprint (TRow fields union) =
+    let fields' = interleave ", " $ map (\(n, t) -> pprint n <+> " : " <+> pprint t) $ Map.toAscList fields in
+    let unions' = interleave " | " $ map pprint $ Set.toAscList union in
+    parens (fields' <+> " | " <+> unions')
+  pprint (TUnion types union) =
+    let types' = interleave ", " $ map pprint $ Set.toAscList types in
+    let unions' = interleave " | " $ map pprint $ Set.toAscList union in
+    braces (types' <+> " | " <+> unions')
 
 data Literal = LString String
              | LInt Integer
