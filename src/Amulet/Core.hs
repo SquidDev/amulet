@@ -77,8 +77,7 @@ instance Pretty Literal where
 
 data Pattern = PLiteral Literal
              | PWildcard
-             | PTuple [Pattern]
-             | PBind Var Pattern
-             | PConstructor Var [Pattern]
-             | PVector [Pattern]
-             | PRecord [(String, Pattern)] Pattern
+             | PBind Var
+             | PConstructor Var [Var]
+             | PVector [Var]
+             | PRecord [(String, Var)] Var
