@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
-module Amulet.Parser.Lexer 
+module Amulet.Parser.Lexer
   ( module X
   , langDef
   , ids
@@ -92,7 +92,7 @@ natural = T.natural lexer
 integer = T.integer lexer
 floating = T.float lexer
 symbol = T.symbol lexer
-lexeme = T.lexeme lexer 
+lexeme = T.lexeme lexer
 parens = T.parens lexer
 braces = T.braces lexer
 squares = T.brackets lexer
@@ -113,11 +113,11 @@ gcLetters = [ UppercaseLetter
             , ModifierLetter
             , OtherLetter ]
 
-gcNumbers :: [GeneralCategory] 
+gcNumbers :: [GeneralCategory]
 gcNumbers = [ DecimalNumber
             , LetterNumber
             , OtherNumber ]
- 
+
 gcSymbols :: [GeneralCategory]
 gcSymbols = [ MathSymbol
             , CurrencySymbol
@@ -151,5 +151,3 @@ align = indentCmp (==) <?> "Block (same indentation)"
 block, block1 :: Parser a -> Parser [a]
 block p  = laidout (many  (align >> p))
 block1 p = laidout (many1 (align >> p))
-
-
