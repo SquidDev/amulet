@@ -81,29 +81,76 @@ ids = satisfy ((`elem` gcLetters) . generalCategory)
 lexer :: T.GenTokenParser String ParserState Identity
 lexer = T.makeTokenParser langDef
 
+identifier :: Parser String
 identifier = T.identifier lexer
+
+reserved :: String -> Parser ()
 reserved = T.reserved lexer
+
+operator :: Parser String
 operator = T.operator lexer
+
+reservedOp :: String -> Parser ()
 reservedOp = T.reservedOp lexer
+
+charLiteral :: Parser Char
 charLiteral = T.charLiteral lexer
+
+stringLiteral :: Parser String
 stringLiteral = T.stringLiteral lexer
+
+natOrFloat :: Parser (Either Integer Double)
 natOrFloat = T.naturalOrFloat lexer
+
+natural :: Parser Integer
 natural = T.natural lexer
+
+integer :: Parser Integer
 integer = T.integer lexer
+
+floating :: Parser Double
 floating = T.float lexer
+
+symbol :: String -> Parser String
 symbol = T.symbol lexer
+
+lexeme :: Parser a -> Parser a
 lexeme = T.lexeme lexer
+
+parens :: Parser a -> Parser a
 parens = T.parens lexer
+
+braces :: Parser a -> Parser a
 braces = T.braces lexer
+
+squares :: Parser a -> Parser a
 squares = T.brackets lexer
+
+angles :: Parser a -> Parser a
 angles = T.angles lexer
+
+semi :: Parser String
 semi = T.semi lexer
+
+colon :: Parser String
 colon = T.colon lexer
+
+comma :: Parser String
 comma = T.comma lexer
+
+dot :: Parser String
 dot = T.dot lexer
+
+semiSep :: Parser a -> Parser [a]
 semiSep = T.semiSep lexer
+
+commaSep :: Parser a -> Parser [a]
 commaSep = T.commaSep lexer
+
+semiSep1 :: Parser a -> Parser [a]
 semiSep1 = T.semiSep1 lexer
+
+commaSep1 :: Parser a -> Parser [a]
 commaSep1 = T.commaSep1 lexer
 
 gcLetters :: [GeneralCategory]
