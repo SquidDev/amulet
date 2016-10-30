@@ -38,6 +38,8 @@ instance Pretty Expr where
   pprint (EApply f@ELambda{} e@ELambda{}) = parens f <+> " " <+> parens e
   pprint (EApply f@ELambda{}           e) = parens f <+> " " <+> e
   pprint (EApply           f           e) = f <+> " " <+> e
+  pprint (EMatch           _           _) = unimplemented where
+    unimplemented = error "unimplemented!"
 
 data Type = TVar Var
           | TName Var
