@@ -3,12 +3,10 @@
 module Amulet.Pretty where
 
 import qualified Data.Map as Map
-import qualified Data.Set as Set
 
 import Control.Monad.RWS.Strict
 import Control.Applicative
 
-import Data.Char
 import Data.List
 
 type PrettyM = RWS PParam String PState
@@ -80,7 +78,7 @@ block st ac
        put $ PState x
 
 step :: Int -> PrettyP
-step x = modify $ \state -> state { indent = indent state + x }
+step x = modify $ \s -> s { indent = indent s + x }
 
 newline :: PrettyP
 newline
@@ -89,7 +87,7 @@ newline
        tell $ replicate x ' '
 
 typeClr :: Pretty a => a -> PrettyP
-typeClr x = flip colour x =<< asks typeColour 
+typeClr x = flip colour x =<< asks typeColour
 
 kwClr :: Pretty a => a -> PrettyP
 kwClr x = flip colour x =<< asks typeColour
@@ -184,5 +182,3 @@ instance Pretty Int
 instance Pretty Double
 instance Pretty Float
 instance Pretty Integer
-
-

@@ -8,7 +8,7 @@ import qualified Data.Set as Set
 data Name = Name Int String
 
 instance Pretty Name where
-  pprint (Name id nm) = nm <+> greyOut ("#" <+> id)
+  pprint (Name cnt nm) = nm <+> greyOut ("#" <+> cnt)
 
 data Var = TermVar Name Type
          | TypeVar Name Type
@@ -83,3 +83,4 @@ data Pattern = PLiteral Literal
              | PConstructor Var [Var]
              | PVector [Var]
              | PRecord [(String, Var)] Var
+
