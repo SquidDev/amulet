@@ -4,6 +4,7 @@ module Amulet.Parser.Lexer
   , langDef
   , ids
   , identifier
+  , typename
   , reserved
   , operator
   , reservedOp
@@ -83,6 +84,12 @@ lexer = T.makeTokenParser langDef
 
 identifier :: Parser String
 identifier = T.identifier lexer
+
+typename :: Parser String
+typename = do id@(x:_) <- identifier
+              if isLower x
+                then mzero <?> "a type name"
+                else pure id
 
 reserved :: String -> Parser ()
 reserved = T.reserved lexer
