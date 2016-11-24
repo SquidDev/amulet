@@ -1,11 +1,15 @@
 module Amulet.AST where
 
-import Amulet.Core
+import Amulet.Core (Name, Literal)
 
-data AVar = AScoped [String]
-          | AVar Var
+type AVar = Name
 
-data AExpr = ALiteral Literal
+data Position = Position String Int Int
+
+data Assoc = AssLeft | AssRight | AssNone
+type OpDef = (Int, Assoc)
+
+data AExpr = AELiteral Literal
            | AEVar AVar
            | AEAnnot AExpr AType
            | AEApply AExpr AExpr
@@ -13,11 +17,9 @@ data AExpr = ALiteral Literal
            | AEVector [AExpr]
            | AETuple [AExpr]
            | AEMatch [(APattern, AExpr)]
-           | AELet [(APattern, AExpr)] AExpr
+           | AELet [(APattern, AExpr)] AExpr -- TODO: Operator bindings
            | AELetRec [(APattern, AExpr)] AExpr
-           -- Discarded after operator folding
-           | AEParens AExpr
-           | AEOps [AExpr]
+           | AEPositioned AExpr Position
 
 data AType = ATVar AVar
            | ATApply AType AType
@@ -27,9 +29,7 @@ data AType = ATVar AVar
            | ATTuple [AType]
            | ATRow [(String, AType)] [AVar]
            | ATUnion [AType] [AVar]
-           -- Discarded after operator folding
-           | ATOps [AType]
-           | ATParens AType
+           | ATPoisition AType Position
 
 data APattern = APVar AVar
               | APLiteral Literal
@@ -39,6 +39,4 @@ data APattern = APVar AVar
               | APVector [APattern]
               | APTuple [APattern]
               | APRecord [(String, APattern)] APattern
-              -- Discarded after operator folder
-              | APOps [APattern]
-              | APParens APattern
+              | APPositioned APattern Position
